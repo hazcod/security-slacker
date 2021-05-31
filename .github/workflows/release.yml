@@ -16,8 +16,15 @@ jobs:
       name: Unshallow
       run: git fetch --prune --unshallow
     -
+      id: versions
+      run: |
+        echo ::set-output name=go::$(grep '^FROM go' .github/go/Dockerfile | cut -d ' ' -f 2 | cut -d ':' -f 2)
+        echo "Using Go version ${{ steps.versions.outputs.go }}"
+    -
       name: Set up Go
       uses: actions/setup-go@v2
+      with:
+        go-version: ${{ steps.versions.outputs.go }}
     -
       name: Release
       uses: goreleaser/goreleaser-action@v2
