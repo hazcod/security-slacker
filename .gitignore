@@ -17,3 +17,6 @@ vendor/
 # exclude  config
 test.yaml
 test.yml
+
+slacker
+csn

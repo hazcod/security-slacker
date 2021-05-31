@@ -7,13 +7,13 @@ builds:
   env:
   - CGO_ENABLED=0
   ldflags:
-  - -w -s -extldflags "-static" -trimpath
+  - -w -s -extldflags "-static"
   dir: ./cmd
   goos:
-    - darwin
-    - linux
-    - windows
-    - freebsd
+  - darwin
+  - linux
+  - windows
+  - freebsd
 
 archives:
 -
