@@ -10,12 +10,9 @@ dockers:
   - "hazcod/crowdstrike-spotlight-slacker:v{{ .Major }}"
   - "gcr.io/hazcod/crowdstrike-spotlight-slacker:latest"
 
-  dockerfile: Dockerfile
-  
-  extra_files: [go.mod, go.sum]
-
 builds:
 -
+  binary: css
   env:
   - CGO_ENABLED=0
   ldflags:
