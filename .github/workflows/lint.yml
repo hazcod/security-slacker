@@ -4,7 +4,7 @@ on: pull_request
 
 jobs:
   golangci:
-    name: Lint - Go
+    name: go
     runs-on: ubuntu-latest
     steps:
       -
