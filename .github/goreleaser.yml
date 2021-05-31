@@ -5,9 +5,9 @@ before:
 dockers:
 -
   image_templates:
-  - "gcr.io/hazcod/crowdstrike-spotlight-slacker/css:{{ .Tag }}"
-  - "gcr.io/hazcod/crowdstrike-spotlight-slacker/css:v{{ .Major }}"
-  - "gcr.io/hazcod/crowdstrike-spotlight-slacker/css:latest"
+  - "ghcr.io/hazcod/crowdstrike-spotlight-slacker/css:{{ .Tag }}"
+  - "ghcr.io/hazcod/crowdstrike-spotlight-slacker/css:v{{ .Major }}"
+  - "ghcr.io/hazcod/crowdstrike-spotlight-slacker/css:latest"
 
 builds:
 -
