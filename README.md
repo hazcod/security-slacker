@@ -1,5 +1,5 @@
-# crowdstrike-spotlight-slack-nagger
-Nags users about outstanding application vulnerabilities found by Crowdstrike Spotlight so they patch their software.
+# crowdstrike-spotlight-slacker
+Nags users on Slack about outstanding application vulnerabilities found by Crowdstrike Spotlight so they patch their software.
 
 ![slack example](.github/readme/screenshot.png)
 
