@@ -5,7 +5,7 @@ Nags users on Slack about outstanding application vulnerabilities found by Crowd
 
 ## Instructions
 
-1. Tag your Falcon hosts with `email/user/company.com` if their email is `user@company.com`.
+1. Tag your Falcon hosts with `email/user/company/com` if their email is `user@company.com`.
 2. Download a release of csn
 3. Create a configuration file
 
