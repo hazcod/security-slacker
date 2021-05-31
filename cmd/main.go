@@ -23,6 +23,7 @@ import (
 
 const (
 	tagEmailPrefix = "email/"
+	tagFalconPrefix = "FalconGroupingTags/"
 )
 
 var (
@@ -79,6 +80,7 @@ func findEmailTag(tags []string, emailHost string) (email string, err error) {
 	}
 
 	email = strings.ToLower(email)
+	email = strings.TrimLeft(email, tagFalconPrefix)
 	email = strings.Replace(email, fmt.Sprintf("/%s", emailHost), fmt.Sprintf("@%s", emailHost), 1)
 	email = strings.ReplaceAll(email, "/", ".")
 
