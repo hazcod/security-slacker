@@ -61,6 +61,8 @@ func getUniqueDeviceID(hostInfo models.DomainAPIVulnerabilityHostInfoV2) (string
 
 func findEmailTag(tags []string, emailHost string) (email string, err error) {
 	for _, tag := range tags {
+		tag = strings.TrimLeft(tag, tagFalconPrefix)
+
 		if !strings.HasPrefix(tag, tagEmailPrefix) {
 			continue
 		}
@@ -80,7 +82,6 @@ func findEmailTag(tags []string, emailHost string) (email string, err error) {
 	}
 
 	email = strings.ToLower(email)
-	email = strings.TrimLeft(email, tagFalconPrefix)
 	email = strings.Replace(email, fmt.Sprintf("/%s", emailHost), fmt.Sprintf("@%s", emailHost), 1)
 	email = strings.ReplaceAll(email, "/", ".")
 
