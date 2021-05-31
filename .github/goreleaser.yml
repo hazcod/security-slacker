@@ -8,7 +8,7 @@ dockers:
   - "hazcod/crowdstrike-spotlight-slacker:latest"
   - "hazcod/crowdstrike-spotlight-slacker:{{ .Tag }}"
   - "hazcod/crowdstrike-spotlight-slacker:v{{ .Major }}"
-  - "gcr.io/hazcod/crowdstrike-spotlight-slacker:latest"
+  - "gcr.io/hazcod/crowdstrike-spotlight-slacker/css:latest"
 
 builds:
 -
