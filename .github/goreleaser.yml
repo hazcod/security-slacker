@@ -2,6 +2,16 @@ before:
   hooks:
   - go mod download
 
+dockers:
+  image_templates:
+  - "myuser/myimage:latest"
+  - "myuser/myimage:{{ .Tag }}"
+  - "myuser/myimage:{{ .Tag }}-{{ .Env.GO_VERSION }}"
+  - "myuser/myimage:v{{ .Major }}"
+  - "gcr.io/myuser/myimage:latest"
+  
+  dockerfile: Dockerfile
+
 builds:
 -
   env:
