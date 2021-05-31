@@ -244,7 +244,7 @@ func main() {
 				WithField("tags", device.Tags).
 				WithField("prefix", tagEmailPrefix).
 				WithField("device", device.MachineName).
-				Warn("could not find user email, using fallback user")
+				Warn("could extract user email tag, using fallback Slack user")
 
 			userEmail = config.Slack.FallbackUser
 		}
@@ -262,6 +262,8 @@ func main() {
 		users[userEmail] = user
 	}
 
+	logrus.Debugf("%+v", users)
+
 	slackClient := slack.New(config.Slack.Token)
 
 	logrus.Info("fetching slack users")
@@ -271,6 +273,7 @@ func main() {
 	}
 
 	for _, user := range users {
+		logrus.WithField("user", user.Email).Debug("handling user at risk")
 
 		var theSlackUser slack.User
 		for _, slackUser := range slackUsers {
@@ -318,5 +321,9 @@ func main() {
 				Error("could not send slack message")
 			continue
 		}
+
+		logrus.
+			WithField("user", user.Email).WithField("devices", len(user.Devices)).
+			Info("sent reminder on Slack")
 	}
 }
