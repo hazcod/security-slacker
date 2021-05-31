@@ -6,7 +6,7 @@ Nags users on Slack about outstanding application vulnerabilities found by Crowd
 ## Instructions
 
 1. Tag your Falcon hosts with `email/user/company/com` if their email is `user@company.com`.
-2. Download a release of css from here.
+2. Fetch a binary release or Docker image from [Releases](https://github.com/hazcod/crowdstrike-spotlight-slacker/releases).
 3. Create a configuration file:
 
 ```yaml
