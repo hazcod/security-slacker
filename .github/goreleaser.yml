@@ -7,7 +7,7 @@ builds:
   env:
   - CGO_ENABLED=0
   asmflags:
-  - all=-trimpath={{.Env.GOPATH}}
+  - all=-trimpath
   ldflags:
   - -w -s -extldflags "-static"
   dir: ./cmd
