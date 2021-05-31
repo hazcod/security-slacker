@@ -18,5 +18,9 @@ vendor/
 test.yaml
 test.yml
 
+# binaries
 slacker
 csn
+
+# jetbrains ide
+.idea/
