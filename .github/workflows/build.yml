@@ -17,4 +17,4 @@ jobs:
       uses: goreleaser/goreleaser-action@v2
       with:
         version: latest
-        args: build --config=.github/goreleaser.yml
+        args: build --config=.github/goreleaser.yml --snapshot
