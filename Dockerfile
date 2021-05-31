@@ -1,3 +1,18 @@
+FROM alpine:latest AS builder
+
+# add ca certificates and timezone data files
+# hadolint ignore=DL3018
+RUN apk add -U --no-cache ca-certificates tzdata
+
+# add unprivileged user
+RUN adduser -s /bin/true -u 1000 -D -h /app app \
+ && sed -i -r "/^(app|root)/!d" /etc/group /etc/passwd \
+ && sed -i -r 's#^(.*):[^:]*$#\1:/sbin/nologin#' /etc/passwd
+
+#
+# ---
+#
+
 # start with empty image
 FROM scratch
 
