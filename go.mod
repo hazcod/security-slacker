@@ -1,4 +1,4 @@
-module github.com/hazcod/spotty
+module github.com/hazcod/crowdstrike-spotlight-slacker
 
 go 1.16
 

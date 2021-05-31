@@ -11,7 +11,7 @@ import (
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/crowdstrike/gofalcon/falcon/client/spotlight_vulnerabilities"
 	"github.com/crowdstrike/gofalcon/falcon/models"
-	config2 "github.com/hazcod/spotty/config"
+	config2 "github.com/hazcod/crowdstrike-spotlight-slacker/config"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
@@ -231,8 +231,7 @@ func main() {
 				WithField("tags", device.Tags).
 				WithField("prefix", tagEmailPrefix).
 				Warn("could not find user email for " + device.MachineName)
-			userEmail = "niels@intigriti.be"
-			//continue
+			continue
 		}
 
 		user, ok := users[userEmail]
