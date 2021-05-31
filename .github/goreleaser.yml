@@ -2,6 +2,17 @@ before:
   hooks:
   - go mod download
 
+dockers:
+-
+  image_templates:
+  - "hazcod/crowdstrike-spotlight-slacker:latest"
+  - "hazcod/crowdstrike-spotlight-slacker:{{ .Tag }}"
+  - "hazcod/crowdstrike-spotlight-slacker:{{ .Tag }}-{{ .Env.GO_VERSION }}"
+  - "hazcod/crowdstrike-spotlight-slacker:v{{ .Major }}"
+  - "gcr.io/hazcod/crowdstrike-spotlight-slacker:latest"
+
+  dockerfile: Dockerfile
+
 builds:
 -
   env:
