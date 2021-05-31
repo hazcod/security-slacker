@@ -1,0 +1,20 @@
+name: build
+
+on: pull_request
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+    -
+      name: Checkout
+      uses: actions/checkout@v2
+    -
+      name: Set up Go
+      uses: actions/setup-go@v2
+    -
+      name: Release
+      uses: goreleaser/goreleaser-action@v2
+      with:
+        version: latest
+        args: build --config=.github/goreleaser.yml
