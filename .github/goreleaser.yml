@@ -11,6 +11,8 @@ dockers:
   - "gcr.io/hazcod/crowdstrike-spotlight-slacker:latest"
 
   dockerfile: Dockerfile
+  
+  extra_files: [go.mod, go.sum]
 
 builds:
 -
