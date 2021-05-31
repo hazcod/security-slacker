@@ -15,6 +15,7 @@ const (
 type Config struct {
 	Slack struct {
 		Token string `yaml:"token" env:"SLACK_TOKEN"`
+		FallbackUser string `yaml:"fallback_user" emv:"SLACK_FALLBACK_USER"`
 	} `yaml:"slack"`
 
 	Falcon struct {
@@ -23,7 +24,9 @@ type Config struct {
 		CloudRegion string `yaml:"cloud_region" env:"FALCON_CLOUD_REGION"`
 	} `yaml:"falcon"`
 
-	EmailDomain string `yaml:"email_domain" env:"EMAIL_DOMAIN"`
+	Email struct {
+		Domain string `yaml:"domain" env:"DOMAIN"`
+	} `yaml:"email"`
 
 	Message string `yaml:"message" env:"MESSAGE"`
 }
@@ -68,7 +71,7 @@ func (c *Config) Validate() error {
 		return errors.New("missing falcon cloud region")
 	}
 
-	if c.EmailDomain == "" {
+	if c.Email.Domain == "" {
 		return errors.New("missing email domain")
 	}
 

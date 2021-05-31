@@ -61,7 +61,10 @@ func getUniqueDeviceID(hostInfo models.DomainAPIVulnerabilityHostInfoV2) (string
 
 func findEmailTag(tags []string, emailHost string) (email string, err error) {
 	for _, tag := range tags {
-		tag = strings.TrimLeft(tag, tagFalconPrefix)
+		tag = strings.ToLower(tag)
+		tag = strings.TrimLeft(tag, strings.ToLower(tagFalconPrefix))
+
+		logrus.WithField("tag", tag).Debug("looking at falcon tag")
 
 		if !strings.HasPrefix(tag, tagEmailPrefix) {
 			continue
@@ -95,8 +98,15 @@ func findEmailTag(tags []string, emailHost string) (email string, err error) {
 func main() {
 	ctx := context.Background()
 
-	configPath := flag.String("config", "", "Path to your config file")
+	configPath := flag.String("config", "", "Path to your config file.")
+	logLevelStr:= flag.String("log", "info", "Log level.")
 	flag.Parse()
+
+	logLevel, err := logrus.ParseLevel(*logLevelStr)
+	if err != nil {
+		logrus.WithError(err).Fatal("could not parse log level")
+	}
+	logrus.SetLevel(logLevel)
 
 	config, err := config2.LoadConfig(*configPath)
 	if err != nil {
@@ -227,14 +237,16 @@ func main() {
 	users := map[string]DeviceUser{}
 
 	for _, device := range devices {
-		userEmail, err := findEmailTag(device.Tags, config.EmailDomain)
+		userEmail, err := findEmailTag(device.Tags, config.Email.Domain)
 		if err != nil {
 			logrus.
 				WithError(err).
 				WithField("tags", device.Tags).
 				WithField("prefix", tagEmailPrefix).
-				Warn("could not find user email for " + device.MachineName)
-			continue
+				WithField("device", device.MachineName).
+				Warn("could not find user email, using fallback user")
+
+			userEmail = config.Slack.FallbackUser
 		}
 
 		user, ok := users[userEmail]

@@ -10,15 +10,21 @@ Nags users on Slack about outstanding application vulnerabilities found by Crowd
 
 ```yaml
 slack:
+  # slack bot token
   token: "XXX"
+  # Slack user that receives  messages if the user is not found
+  fallback_user: "security@mycompany.com"
 
 falcon:
   clientid: "XXX"
   secret: "XXX"
   cloud_region: "eu-1"
 
-email_domain: "mycompany"
+email:
+  # email domain
+  domain: "mycompany"
 
+# what is sent to the user in Go templating
 message: |
   *:warning:  We found security vulnerabilities on your device(s)*
   Hi {{ .Slack.Profile.FirstName }} {{ .Slack.Profile.LastName }}! One or more of your devices seem to be vulnerable.
