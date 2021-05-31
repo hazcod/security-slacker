@@ -132,9 +132,7 @@ func main() {
 	}
 
 	var vulnIDs []string
-	for _, vulnID := range queryResult.GetPayload().Resources {
-		vulnIDs = append(vulnIDs, vulnID)
-	}
+	vulnIDs = append(vulnIDs, queryResult.GetPayload().Resources...)
 
 	if len(vulnIDs) == 0 {
 		logrus.Println("no vulnerabilities found")
