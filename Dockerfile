@@ -28,7 +28,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --chown=app css /app
 
 # from now on, run as the unprivileged user
-USER app
+USER 1000
 
 # entrypoint
 ENTRYPOINT ["/app"]
