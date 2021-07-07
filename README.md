@@ -6,8 +6,9 @@ Nags users on Slack about outstanding application vulnerabilities found by Crowd
 ## Instructions
 
 1. Tag your Falcon hosts with `email/user/company/com` if their email is `user@company.com`.
-2. Download a release of csn
-3. Create a configuration file
+2. Fetch a binary release or Docker image from [Releases](https://github.com/hazcod/crowdstrike-spotlight-slacker/releases).
+3. Create a Falcon API token to use in `API Clients and Keys` with `Read` permission to `Hosts` and `Spotlight`.
+4. Create a configuration file:
 
 ```yaml
 slack:
@@ -44,5 +45,5 @@ message: |
   Please update them as soon as possible. In case of any issues, hop into *#security*.
   Thank you! :wave:
 ```
-4. Run `csn -config=your-config.yml`.
+4. Run `css -config=your-config.yml`.
 5. See it popup in Slack!

@@ -2,8 +2,16 @@ before:
   hooks:
   - go mod download
 
+dockers:
+-
+  image_templates:
+  - "ghcr.io/hazcod/crowdstrike-spotlight-slacker/css:{{ .Tag }}"
+  - "ghcr.io/hazcod/crowdstrike-spotlight-slacker/css:v{{ .Major }}"
+  - "ghcr.io/hazcod/crowdstrike-spotlight-slacker/css:latest"
+
 builds:
 -
+  binary: css
   env:
   - CGO_ENABLED=0
   ldflags:
