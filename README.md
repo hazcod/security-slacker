@@ -8,7 +8,8 @@ Nags users on Slack about outstanding application vulnerabilities found by Crowd
 1. Tag your Falcon hosts with `email/user/company/com` if their email is `user@company.com`.
 2. Fetch a binary release or Docker image from [Releases](https://github.com/hazcod/crowdstrike-spotlight-slacker/releases).
 3. Create a Falcon API token to use in `API Clients and Keys` with `Read` permission to `Hosts` and `Spotlight`.
-4. Create a configuration file:
+4. Create a Slack app and get the bot token.
+5. Create a configuration file:
 
 ```yaml
 slack:
