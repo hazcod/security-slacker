@@ -14,12 +14,14 @@ slack:
   # slack bot token
   token: "XXX"
   # Slack user that receives  messages if the user is not found
-  fallback_user: "security@mycompany.com"
+  security_user: "security@mycompany.com"
 
 falcon:
   clientid: "XXX"
   secret: "XXX"
   cloud_region: "eu-1"
+  # skip vulnerabilities without patches available
+  skip_no_mitigation: true
 
 email:
   # email domain
