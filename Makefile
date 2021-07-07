@@ -6,4 +6,3 @@ clean:
 build:
 	go build -o slacker ./cmd/
 	chmod +x slacker
-

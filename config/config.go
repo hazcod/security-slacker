@@ -3,9 +3,9 @@ package config
 import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 )
 
 const (
@@ -14,24 +14,29 @@ const (
 
 type Config struct {
 	Slack struct {
-		Token string `yaml:"token" env:"SLACK_TOKEN"`
-		FallbackUser string `yaml:"fallback_user" emv:"SLACK_FALLBACK_USER"`
+		Token        string `yaml:"token" env:"SLACK_TOKEN"`
+		SecurityUser string `yaml:"security_user" emv:"SLACK_SECURITY_USER"`
 	} `yaml:"slack"`
 
 	Falcon struct {
 		ClientID    string `yaml:"clientid" env:"FALCON_CLIENT_ID"`
 		Secret      string `yaml:"secret" env:"FALCON_SECRET"`
 		CloudRegion string `yaml:"cloud_region" env:"FALCON_CLOUD_REGION"`
+
+		SkipNoMitigation bool `yaml:"skip_no_mitigation" env:"FALCON_SKIP_NO_MITIGATION"`
 	} `yaml:"falcon"`
 
 	Email struct {
 		Domain string `yaml:"domain" env:"DOMAIN"`
 	} `yaml:"email"`
 
-	Message string `yaml:"message" env:"MESSAGE"`
+	Templates struct {
+		UserMessage string `yaml:"user_message" env:"USER_MESSAGE"`
+		SecurityOverviewMessage string `yaml:"security_overview_message" env:"SECURITY_OVERVIEW_MESSAGE"`
+	} `yaml:"templates"`
 }
 
-func LoadConfig(path string) (*Config, error) {
+func LoadConfig(logger *logrus.Logger, path string) (*Config, error) {
 	var config Config
 
 	if path != "" {
@@ -44,7 +49,7 @@ func LoadConfig(path string) (*Config, error) {
 			return nil, errors.Wrap(err, "could not parse configuration file")
 		}
 
-		log.Println("loaded configuration from " + path)
+		logger.Info("loaded configuration from " + path)
 	}
 
 	if err := envconfig.Process(appEnvPrefix, &config); err != nil {
@@ -75,7 +80,7 @@ func (c *Config) Validate() error {
 		return errors.New("missing email domain")
 	}
 
-	if c.Message == "" {
+	if c.Templates.UserMessage == "" {
 		return errors.New("missing message")
 	}
 
