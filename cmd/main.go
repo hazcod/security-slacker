@@ -5,7 +5,7 @@ import (
 	"flag"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/overview/security"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/overview/user"
-	"github.com/pkg/errors"
+	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/ws1"
 	"os"
 	"strings"
 
@@ -42,9 +42,16 @@ func main() {
 		logrus.WithError(err).Fatal("invalid configuration")
 	}
 
+	// ---
+
 	falconMessages, err := falcon.GetMessages(config, ctx)
 	if err != nil {
 		logrus.WithError(err).Fatal("could not get falcon messages")
+	}
+
+	ws1Messages, err := ws1.GetMessages(config, ctx)
+	if err != nil {
+		logrus.WithError(err).Fatal("could not get WS1 messages")
 	}
 
 	// ---
@@ -74,65 +81,63 @@ func main() {
 
 	var errorsToReport []error
 
-	for userEmail, falconResult := range falconMessages {
-		logrus.WithField("user", userEmail).Debug("handling user at risk")
+	for _, slackUser := range slackUsers {
+		userEmail := strings.ToLower(slackUser.Profile.Email)
 
-		var theSlackUser slack.User
-		for _, slackUser := range slackUsers {
-			if !strings.EqualFold(userEmail, slackUser.Profile.Email) {
-				continue
-			}
-			theSlackUser = slackUser
-		}
-
-		if theSlackUser.Name == "" {
-			logrus.WithField("user", userEmail).Error("slack user not found")
-			errorsToReport = append(errorsToReport, errors.New("User not found on Slack: " + userEmail))
+		if slackUser.IsBot {
 			continue
 		}
 
-		if theSlackUser.IsBot {
-			logrus.WithField("user", userEmail).Error("user is a Slack bot")
+		userFalconMsg := falconMessages[userEmail]
+
+		userWS1Msg := ws1Messages[userEmail]
+
+		if len(userFalconMsg.Devices) == 0 && len(userWS1Msg.Devices) == 0 {
 			continue
 		}
 
-		slackMessage, err := user.BuildUserOverviewMessage(logrus.StandardLogger(), config, theSlackUser, falconMessages[falconResult.Email])
+		logrus.WithField("falcon", userFalconMsg).WithField("ws1", userWS1Msg).WithField("email", userEmail).
+			Debug("found messages")
+
+		slackMessage, err := user.BuildUserOverviewMessage(logrus.StandardLogger(), config, slackUser, falconMessages[userEmail], ws1Messages[userEmail])
 		if err != nil {
-			logrus.WithError(err).WithField("user", theSlackUser.Profile.Email).Error("could not generate user message")
+			logrus.WithError(err).WithField("user", slackUser.Profile.Email).Error("could not generate user message")
+			continue
+		}
+
+		if slackMessage == "" {
 			continue
 		}
 
 		if !*dryMode {
 			if _, _, _, err := slackClient.SendMessage(
-				theSlackUser.ID,
+				slackUser.ID,
 				slack.MsgOptionText(slackMessage, false),
 				slack.MsgOptionAsUser(true),
 			); err != nil {
 				logrus.WithError(err).
-					WithField("user", theSlackUser.Profile.Email).
+					WithField("user", slackUser.Profile.Email).
 					Error("could not send slack message")
 				continue
 			}
 		}
 
-		logrus.
-			WithField("user", falconResult.Email).WithField("devices", len(falconResult.Devices)).
-			Info("sent reminder on Slack")
+		logrus.WithField("user", userEmail).Info("sent notice on Slack")
 	}
-
-	/*
-	if len(falconMessages) == 0 {
-		logrus.Info("nothing to report, exiting")
-		os.Exit(0)
-	}
-	*/
 
 	if config.Templates.SecurityOverviewMessage == "" {
-		logrus.Info("not sending a security overview")
+		logrus.Warn("not sending a security overview since template is empty")
 		os.Exit(0)
 	}
 
-	overviewText, err := security.BuildSecurityOverviewMessage(logrus.StandardLogger(), *config, falconMessages, errorsToReport)
+	if config.Slack.SkipNoReport {
+		if len(falconMessages) == 0 && len(ws1Messages) == 0 {
+			logrus.Info("nothing to report, exiting")
+			os.Exit(0)
+		}
+	}
+
+	overviewText, err := security.BuildSecurityOverviewMessage(logrus.StandardLogger(), *config, falconMessages, ws1Messages, errorsToReport)
 	if err != nil {
 		logrus.WithError(err).Fatal("could not generate security overview")
 	}
