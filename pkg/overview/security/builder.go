@@ -4,25 +4,36 @@ import (
 	"bytes"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/config"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/falcon"
+	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/ws1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"html/template"
 	"time"
 )
 
-func BuildSecurityOverviewMessage(logger *logrus.Logger, config config.Config, falconResults map[string]falcon.FalconResult, reportedErrors []error) (string, error) {
+func BuildSecurityOverviewMessage(logger *logrus.Logger, config config.Config, falconResults map[string]falcon.FalconResult, ws1Results map[string]ws1.WS1Result, reportedErrors []error) (string, error) {
 	messageTemplate, err := template.New("message").Parse(config.Templates.SecurityOverviewMessage)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to parse message")
 	}
 
+	var allFalcon []falcon.FalconResult
+	for _, f := range falconResults { allFalcon = append(allFalcon, f) }
+
+	var allWS1 []ws1.WS1Result
+	for _, w := range ws1Results { allWS1 = append(allWS1, w) }
+
+	logrus.Debugf("falcon: %d ws1: %d", len(allFalcon), len(allWS1))
+
 	variables := struct {
-		Results map[string]falcon.FalconResult
+		Falcon []falcon.FalconResult
+		WS1 []ws1.WS1Result
 		Date time.Time
 		Errors []error
 	}{
 		Date: time.Now(),
-		Results: falconResults,
+		Falcon: allFalcon,
+		WS1: allWS1,
 		Errors: reportedErrors,
 	}
 

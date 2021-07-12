@@ -16,6 +16,8 @@ type Config struct {
 	Slack struct {
 		Token        string `yaml:"token" env:"SLACK_TOKEN"`
 		SecurityUser string `yaml:"security_user" emv:"SLACK_SECURITY_USER"`
+
+		SkipNoReport bool `yaml:"skip_no_report" env:"SLACK_SKIP_NO_REPORT"`
 	} `yaml:"slack"`
 
 	Falcon struct {
@@ -26,8 +28,15 @@ type Config struct {
 		SkipNoMitigation bool `yaml:"skip_no_mitigation" env:"FALCON_SKIP_NO_MITIGATION"`
 	} `yaml:"falcon"`
 
+	WS1 struct {
+		Endpoint string `yaml:"api_url" env:"WS1_API_URL"`
+		APIKey string `yaml:"api_key" env:"WS1_API_KEY"`
+		User string `yaml:"user" env:"WS1_USER"`
+		Password string `yaml:"password" env:"WS1_PASSWORD"`
+	} `yaml:"ws1"`
+
 	Email struct {
-		Domain string `yaml:"domain" env:"DOMAIN"`
+		Domains []string `yaml:"domains" env:"DOMAINS"`
 	} `yaml:"email"`
 
 	Templates struct {
@@ -76,8 +85,8 @@ func (c *Config) Validate() error {
 		return errors.New("missing falcon cloud region")
 	}
 
-	if c.Email.Domain == "" {
-		return errors.New("missing email domain")
+	if len(c.Email.Domains) == 0 {
+		return errors.New("missing email domain(s)")
 	}
 
 	if c.Templates.UserMessage == "" {

@@ -52,7 +52,7 @@ func getUniqueDeviceID(hostInfo models.DomainAPIVulnerabilityHostInfoV2) (string
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-func findEmailTag(tags []string, emailHost string) (email string, err error) {
+func findEmailTag(tags []string, emailDomains []string) (email string, err error) {
 	theTag := ""
 
 	for _, tag := range tags {
@@ -79,9 +79,19 @@ func findEmailTag(tags []string, emailHost string) (email string, err error) {
 		return "", errors.New("email tag not found")
 	}
 
-	email = strings.ToLower(theTag)
-	email = strings.Replace(email, fmt.Sprintf("/%s", emailHost), fmt.Sprintf("@%s", emailHost), 1)
-	email = strings.ReplaceAll(email, "/", ".")
+	theTag = strings.ToLower(theTag)
+
+	for _, domain := range emailDomains {
+		if ! strings.Contains(theTag ,strings.ToLower(domain)) {
+			continue
+		}
+
+		email = theTag
+		email = strings.Replace(email, fmt.Sprintf("/%s", domain), fmt.Sprintf("@%s", domain), 1)
+		email = strings.ReplaceAll(email, "/", ".")
+
+		break
+	}
 
 	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
 		return "", errors.New("invalid email address: " + email)
@@ -218,7 +228,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 	logrus.WithField("devices", len(devices)).Info("found vulnerable devices")
 
 	for _, device := range devices {
-		userEmail, err := findEmailTag(device.Tags, config.Email.Domain)
+		userEmail, err := findEmailTag(device.Tags, config.Email.Domains)
 		if err != nil {
 			logrus.
 				WithError(err).
