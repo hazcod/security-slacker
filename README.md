@@ -4,9 +4,11 @@ Nags users on Slack about outstanding risks found by Crowdstrike Spotlight or vm
 Self-service security culture! :partying_face:
 
 Slack message for the user:
+
 ![slack example](.github/readme/user.png)
 
 Slack overview message for the security user:
+
 ![slack example](.github/readme/overview.png)
 
 ## Instructions
