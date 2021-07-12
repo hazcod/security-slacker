@@ -1,4 +1,4 @@
-# security-slacker
+# 🤖 security-slacker
 Nags users on Slack about outstanding risks found by Crowdstrike Spotlight or vmware Workspace ONE so they can secure their own endpoint.
 
 Self-service security culture! :partying_face:
