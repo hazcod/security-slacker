@@ -13,7 +13,6 @@ Self-service security culture! :partying_face:
 4. Create a Falcon API token to use in `API Clients and Keys` with `Read` permission to `Hosts` and `Spotlight`.
 5. Create a Workspace ONE API token and user to use.
 6. Create a configuration file:
-
 ```yaml
 slack:
   # slack bot token
