@@ -63,6 +63,8 @@ func doAuthRequest(user, pass, apiKey, url, method string, payload interface{}) 
 	}
 
 	if resp.StatusCode > 399 {
+		respB, _ := ioutil.ReadAll(resp.Body)
+		logrus.WithField("response", string(respB)).Warn("invalid response")
 		return nil, errors.New("invalid response code: " + strconv.Itoa(resp.StatusCode))
 	}
 
