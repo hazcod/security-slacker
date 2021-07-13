@@ -53,11 +53,9 @@ func getUniqueDeviceID(hostInfo models.DomainAPIVulnerabilityHostInfoV2) (string
 }
 
 func findEmailTag(tags []string, emailDomains []string) (email string, err error) {
-	theTag := ""
-
 	for _, tag := range tags {
 		tag = strings.ToLower(tag)
-		tag = strings.TrimLeft(tag, strings.ToLower(tagFalconPrefix))
+		tag = strings.TrimPrefix(tag, strings.ToLower(tagFalconPrefix))
 
 		logrus.WithField("tag", tag).Trace("looking at falcon tag")
 
@@ -65,39 +63,36 @@ func findEmailTag(tags []string, emailDomains []string) (email string, err error
 			continue
 		}
 
-		if theTag != "" {
-			logrus.
-				WithField("tag", tag).WithField("email", theTag).
-				WithField("prefix", tagEmailPrefix).
-				Warn("multiple user tags found")
-		}
-
-		theTag = strings.TrimLeft(tag, tagEmailPrefix)
+		email = strings.TrimPrefix(tag, tagEmailPrefix)
+		break
 	}
 
-	if theTag == "" {
+	if email == "" {
 		return "", errors.New("email tag not found")
 	}
 
-	theTag = strings.ToLower(theTag)
-
+	domainFound := false
 	for _, domain := range emailDomains {
-		if ! strings.Contains(theTag ,strings.ToLower(domain)) {
+		if ! strings.Contains(email, strings.ToLower(domain)) {
 			continue
 		}
 
-		email = theTag
 		email = strings.Replace(email, fmt.Sprintf("/%s", domain), fmt.Sprintf("@%s", domain), 1)
 		email = strings.ReplaceAll(email, "/", ".")
 
+		domainFound = true
 		break
+	}
+
+	if !domainFound {
+		return "", errors.New("domain not recognized")
 	}
 
 	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
 		return "", errors.New("invalid email address: " + email)
 	}
 
-	logrus.WithField("tag", theTag).WithField("email", email).Debug("converted tag to email")
+	logrus.WithField("email", email).Debug("converted tag to email")
 
 	return email, nil
 }
