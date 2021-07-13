@@ -26,6 +26,8 @@ type Config struct {
 		CloudRegion string `yaml:"cloud_region" env:"FALCON_CLOUD_REGION"`
 
 		SkipNoMitigation bool `yaml:"skip_no_mitigation" env:"FALCON_SKIP_NO_MITIGATION"`
+		SkipSeverities []string `yaml:"skip_severities" env:"FALCON_SKIP_SEVERITIES"`
+		MinCVEBaseScore int `yaml:"min_cve_base_score" env:"FALCON_MIN_CVE_BASE_SCORE"`
 	} `yaml:"falcon"`
 
 	WS1 struct {
