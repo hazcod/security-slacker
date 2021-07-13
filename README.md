@@ -48,6 +48,11 @@ ws1:
   api_key: "XXX"
   user: "XXX"
   password: "XXX"
+  # what policies you want to skip
+  # leave user or policy blank to ignore it
+  skip:
+  - policy: "Disk Encryption"
+    user: "some_special_user@company.com"
 
 # email domains used in your Slack workspace for filtering
 # e.g. for a Slack account user@mycompany.com
