@@ -173,6 +173,31 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 			continue
 		}
 
+		if config.Falcon.MinCVEBaseScore > 0 {
+			if int(*vuln.Cve.BaseScore) < config.Falcon.MinCVEBaseScore {
+				logrus.WithField("cve_score", *vuln.Cve.BaseScore).Debug("skipping vulnerability")
+				continue
+			}
+		}
+
+		if len(config.Falcon.SkipSeverities) > 0 {
+			vulnSev := strings.ToLower(*vuln.Cve.Severity)
+			skip := false
+
+			for _, sev := range config.Falcon.SkipSeverities {
+				if strings.EqualFold(sev, vulnSev) {
+					logrus.WithField("severity", *vuln.Cve.Severity).Debug("skipping vulnerability")
+					skip = true
+					break
+				}
+			}
+
+			if skip { continue }
+		}
+
+		logrus.WithField("cve_score", *vuln.Cve.BaseScore).WithField("severity", *vuln.Cve.Severity).
+			Debug("adding vulnerability")
+
 		deviceFinding := UserDeviceFinding{
 			ProductName:         *vuln.App.ProductNameVersion,
 			CveID:               *vuln.Cve.ID,
@@ -180,8 +205,6 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 			MitigationAvailable: true,
 			TimestampFound:      *vuln.CreatedTimestamp,
 		}
-
-		logrus.Warnf("%+v", vuln.HostInfo.Tags)
 
 		if _, ok := devices[uniqueDeviceID]; !ok {
 			devices[uniqueDeviceID] = UserDevice{

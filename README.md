@@ -37,6 +37,10 @@ falcon:
   cloud_region: "eu-1"
   # skip vulnerabilities without available patches
   skip_no_mitigation: true
+  # what severity classes you want to skip
+  skip_severities: ["low"]
+  # minimum CVE base score to report
+  min_cve_base_score: 0
 
 # vmware workspace one
 ws1:
