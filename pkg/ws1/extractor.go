@@ -122,6 +122,18 @@ func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Resu
 		for _, policy := range device.ComplianceSummary.DeviceCompliance {
 			if policy.CompliantStatus { continue }
 
+			shouldSkip := false
+			for _, filter := range config.WS1.SkipFilters {
+				if filter.Policy != "" && !strings.EqualFold(policy.PolicyName, filter.Policy) {
+					continue
+				}
+				if filter.User != "" && !strings.EqualFold(filter.User, userEmail) {
+					continue
+				}
+				shouldSkip = true
+			}
+			if shouldSkip { continue }
+
 			userDevice.Findings = append(userDevice.Findings, UserDeviceFinding{
 				ComplianceName: policy.PolicyName,
 			})

@@ -35,6 +35,11 @@ type Config struct {
 		APIKey string `yaml:"api_key" env:"WS1_API_KEY"`
 		User string `yaml:"user" env:"WS1_USER"`
 		Password string `yaml:"password" env:"WS1_PASSWORD"`
+
+		SkipFilters []struct {
+			Policy string `yaml:"policy"`
+			User string `yaml:"user"`
+		}  `yaml:"skip"`
 	} `yaml:"ws1"`
 
 	Email struct {
