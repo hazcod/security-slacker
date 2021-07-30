@@ -11,6 +11,10 @@ Slack overview message for the security user:
 
 ![slack example](.github/readme/overview.png)
 
+## Heroku
+
+[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+
 ## Instructions
 
 1. Tag your Falcon hosts with `email/user/company/com` if their email is `user@company.com`.
