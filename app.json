@@ -1,0 +1,9 @@
+{
+  "name": "security-slacker",
+  "description": "Pokes users about outstanding security risks found by Crowdstrike Spotlight or vmware Workspace ONE so they secure their own endpoint.",
+  "repository": "https://github.com/hazcod/security-slacker",
+  "keywords": ["security", "slack", "slacker", "crowdstrike", "spotlight", "workspace", "one", "airwatch", "nag", "patch", "vulnerability"],
+  "builpacks": [
+    { "url": "heroku/go" }
+  ]
+}
