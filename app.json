@@ -5,5 +5,22 @@
   "keywords": ["security", "slack", "slacker", "crowdstrike", "spotlight", "workspace", "one", "airwatch", "nag", "patch", "vulnerability"],
   "builpacks": [
     { "url": "heroku/go" }
-  ]
+  ],
+  "env": {
+    "CSS_SLACK_TOKEN": { "required": true, "description": "" },
+    "CSS_SLACK_SECURITY_USER": { "required": true, "description": "" },
+    "CSS_SLACK_SKIP_NO_REPORT": { "required": false, "description": "" },
+    "CSS_FALCON_CLIENT_ID": { "required": true, "description": "" },
+    "CSS_FALCON_SECRET": { "required": true, "description": "" },
+    "CSS_FALCON_CLOUD_REGION": { "required": true, "description": "" },
+    "CSS_FALCON_SKIP_NO_MITIGATION": { "required": false, "description": "" },
+    "CSS_FALCON_SKIP_SEVERITIES": { "required": false, "description": "" },
+    "CSS_FALCON_MIN_CVE_BASE_SCORE": { "required": false, "description": "" },
+    "CSS_WS1_API_URL": { "required": true, "description": "" },
+    "CSS_WS1_USER": { "required": true, "description": "" },
+    "CSS_WS1_PASSWORD": { "required": true, "description": "" },
+    "CSS_DOMAINS": { "required": true, "description": "" },
+    "CSS_USER_MESSAGE": { "required": true, "description": "" },
+    "CSS_SECURITY_OVERVIEW_MESSAGE": { "required": true, "description": "" }
+  }
 }
