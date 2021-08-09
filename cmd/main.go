@@ -15,6 +15,10 @@ import (
 	"github.com/slack-go/slack"
 )
 
+const (
+	slackStatusHoliday = "vacationing"
+)
+
 func main() {
 	ctx := context.Background()
 
@@ -85,6 +89,11 @@ func main() {
 		userEmail := strings.ToLower(slackUser.Profile.Email)
 
 		if slackUser.IsBot {
+			continue
+		}
+
+		if strings.EqualFold(slackUser.Profile.StatusText, slackStatusHoliday) {
+			logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
 			continue
 		}
 
