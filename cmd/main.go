@@ -92,7 +92,7 @@ func main() {
 			continue
 		}
 
-		if strings.EqualFold(slackUser.Profile.StatusText, slackStatusHoliday) {
+		if config.Slack.SkipOnHoliday && strings.EqualFold(slackUser.Profile.StatusText, slackStatusHoliday) {
 			logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
 			continue
 		}
