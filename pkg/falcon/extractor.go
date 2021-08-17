@@ -114,7 +114,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 
 	queryResult, err := client.SpotlightVulnerabilities.QueryVulnerabilities(
 		&spotlight_vulnerabilities.QueryVulnerabilitiesParams{
-			Context: context.Background(),
+			Context: ctx,
 			Filter:  "status:'open',remediation.ids:'*'",
 			Limit:   &falconAPIMaxRecords,
 		},
@@ -197,8 +197,15 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 			ProductName:         *vuln.App.ProductNameVersion,
 			CveID:               *vuln.Cve.ID,
 			CveSeverity:         *vuln.Cve.Severity,
-			MitigationAvailable: true,
+			MitigationAvailable: len(vuln.Remediation.Ids) > 0,
 			TimestampFound:      *vuln.CreatedTimestamp,
+		}
+
+		if !deviceFinding.MitigationAvailable {
+			logrus.WithField("cve",*vuln.Cve.ID).WithField("severity", *vuln.Cve.Severity).
+				WithField("product", *vuln.App.ProductNameVersion).
+				Warn("skipping finding without mitigation(s)")
+			continue
 		}
 
 		if _, ok := devices[uniqueDeviceID]; !ok {
