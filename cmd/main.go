@@ -25,6 +25,7 @@ func main() {
 	configPath := flag.String("config", "", "Path to your config file.")
 	logLevelStr := flag.String("log", "info", "Log level.")
 	dryMode := flag.Bool("dry", false, "whether we run in dry-run mode and send nothing to the users.")
+	noReport := flag.Bool("noreport", false, "disable sending an overview to the security user.")
 	flag.Parse()
 
 	logLevel, err := logrus.ParseLevel(*logLevelStr)
@@ -76,7 +77,7 @@ func main() {
 		}
 	}
 
-	if securityUserID == "" {
+	if securityUserID == "" && !*noReport {
 		logrus.WithField("fallback_user", config.Slack.SecurityUser).
 			Fatal("could not find fallback user on Slack")
 	}
@@ -92,11 +93,6 @@ func main() {
 			continue
 		}
 
-		if config.Slack.SkipOnHoliday && strings.EqualFold(slackUser.Profile.StatusText, slackStatusHoliday) {
-			logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
-			continue
-		}
-
 		userFalconMsg := falconMessages[userEmail]
 
 		userWS1Msg := ws1Messages[userEmail]
@@ -105,7 +101,12 @@ func main() {
 			continue
 		}
 
-		logrus.WithField("falcon", userFalconMsg).WithField("ws1", userWS1Msg).WithField("email", userEmail).
+		if config.Slack.SkipOnHoliday && strings.EqualFold(slackUser.Profile.StatusText, slackStatusHoliday) {
+			logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
+			continue
+		}
+
+		logrus.WithField("falcon", len(userFalconMsg.Devices)).WithField("ws1", len(userWS1Msg.Devices)).WithField("email", userEmail).
 			Debug("found messages")
 
 		slackMessage, err := user.BuildUserOverviewMessage(logrus.StandardLogger(), config, slackUser, falconMessages[userEmail], ws1Messages[userEmail])
@@ -132,6 +133,11 @@ func main() {
 		}
 
 		logrus.WithField("user", userEmail).Info("sent notice on Slack")
+	}
+
+	if *noReport {
+		logrus.Info("exiting since security overview is disabled")
+		os.Exit(0)
 	}
 
 	if config.Templates.SecurityOverviewMessage == "" {
