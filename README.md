@@ -1,13 +1,19 @@
 # 🤖 security-slacker
-Nags users on Slack about outstanding risks found by Crowdstrike Spotlight or vmware Workspace ONE so they can secure their own endpoint.
+Pokes users on Slack about outstanding risks found by Crowdstrike Spotlight or vmware Workspace ONE so they can secure their own endpoint.
 
 Self-service security culture! :partying_face:
 
 Slack message for the user:
+
 ![slack example](.github/readme/user.png)
 
 Slack overview message for the security user:
+
 ![slack example](.github/readme/overview.png)
+
+## Heroku
+
+[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
 ## Instructions
 
@@ -25,6 +31,8 @@ slack:
   security_user: "security@mycompany.com"
   # skip sending a security overview if there is nothing to mention
   skip_no_report: true
+  # don't send a message to the user if 'Vacationing' status is set
+  skip_on_holiday: true
 
 # falcon crowdstrike
 falcon:
@@ -35,6 +43,10 @@ falcon:
   cloud_region: "eu-1"
   # skip vulnerabilities without available patches
   skip_no_mitigation: true
+  # what severity classes you want to skip
+  skip_severities: ["low"]
+  # minimum CVE base score to report
+  min_cve_base_score: 0
 
 # vmware workspace one
 ws1:
@@ -42,6 +54,11 @@ ws1:
   api_key: "XXX"
   user: "XXX"
   password: "XXX"
+  # what policies you want to skip
+  # leave user or policy blank to ignore it
+  skip:
+  - policy: "Disk Encryption"
+    user: "some_special_user@company.com"
 
 # email domains used in your Slack workspace for filtering
 # e.g. for a Slack account user@mycompany.com

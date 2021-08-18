@@ -27,6 +27,8 @@ type Config struct {
 		CloudRegion string `yaml:"cloud_region" env:"FALCON_CLOUD_REGION"`
 
 		SkipNoMitigation bool `yaml:"skip_no_mitigation" env:"FALCON_SKIP_NO_MITIGATION"`
+		SkipSeverities []string `yaml:"skip_severities" env:"FALCON_SKIP_SEVERITIES"`
+		MinCVEBaseScore int `yaml:"min_cve_base_score" env:"FALCON_MIN_CVE_BASE_SCORE"`
 	} `yaml:"falcon"`
 
 	WS1 struct {
@@ -34,6 +36,11 @@ type Config struct {
 		APIKey string `yaml:"api_key" env:"WS1_API_KEY"`
 		User string `yaml:"user" env:"WS1_USER"`
 		Password string `yaml:"password" env:"WS1_PASSWORD"`
+
+		SkipFilters []struct {
+			Policy string `yaml:"policy"`
+			User string `yaml:"user"`
+		}  `yaml:"skip"`
 	} `yaml:"ws1"`
 
 	Email struct {

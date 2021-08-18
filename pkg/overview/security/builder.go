@@ -23,7 +23,7 @@ func BuildSecurityOverviewMessage(logger *logrus.Logger, config config.Config, f
 	var allWS1 []ws1.WS1Result
 	for _, w := range ws1Results { allWS1 = append(allWS1, w) }
 
-	logrus.Debugf("falcon: %d ws1: %d", len(allFalcon), len(allWS1))
+	logrus.Debugf("findings: falcon: %d ws1: %d", len(allFalcon), len(allWS1))
 
 	variables := struct {
 		Falcon []falcon.FalconResult
