@@ -92,16 +92,16 @@ func main() {
 			continue
 		}
 
-		if config.Slack.SkipOnHoliday && strings.EqualFold(slackUser.Profile.StatusText, slackStatusHoliday) {
-			logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
-			continue
-		}
-
 		userFalconMsg := falconMessages[userEmail]
 
 		userWS1Msg := ws1Messages[userEmail]
 
 		if len(userFalconMsg.Devices) == 0 && len(userWS1Msg.Devices) == 0 {
+			continue
+		}
+
+		if config.Slack.SkipOnHoliday && strings.EqualFold(slackUser.Profile.StatusText, slackStatusHoliday) {
+			logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
 			continue
 		}
 
