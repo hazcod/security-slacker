@@ -97,6 +97,25 @@ func findEmailTag(tags []string, emailDomains []string) (email string, err error
 	return email, nil
 }
 
+func appendUnique(main, adder []string) []string {
+	for i := range adder {
+		found := false
+
+		for j := range main {
+			if strings.EqualFold(adder[i], main[j]) {
+				found = true
+				break
+			}
+		}
+
+		if found { continue }
+
+		main = append(main, adder[i])
+	}
+
+	return main
+}
+
 func GetMessages(config *config.Config, ctx context.Context) (results map[string]FalconResult, err error) {
 	falconAPIMaxRecords := int64(400)
 
@@ -181,7 +200,9 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 
 			for _, sev := range config.Falcon.SkipSeverities {
 				if strings.EqualFold(sev, vulnSev) {
-					logrus.WithField("severity", *vuln.Cve.Severity).Debug("skipping vulnerability")
+					logrus.WithField("host", *vuln.HostInfo.Hostname).WithField("cve_score", *vuln.Cve.BaseScore).
+						WithField("severity", *vuln.Cve.Severity).WithField("cve", *vuln.Cve.ID).
+						Debug("skipping vulnerability")
 					skip = true
 					break
 				}
@@ -190,7 +211,8 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 			if skip { continue }
 		}
 
-		logrus.WithField("cve_score", *vuln.Cve.BaseScore).WithField("severity", *vuln.Cve.Severity).
+		logrus.WithField("host", *vuln.HostInfo.Hostname).WithField("cve_score", *vuln.Cve.BaseScore).
+			WithField("severity", *vuln.Cve.Severity).WithField("cve", *vuln.Cve.ID).
 			Debug("adding vulnerability")
 
 		deviceFinding := UserDeviceFinding{
@@ -235,7 +257,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 			device.Findings = append(device.Findings, deviceFinding)
 		}
 
-		device.Tags = append(device.Tags, vuln.HostInfo.Tags...)
+		device.Tags = appendUnique(device.Tags, vuln.HostInfo.Tags)
 
 		devices[uniqueDeviceID] = device
 
@@ -260,7 +282,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 				WithField("tags", device.Tags).
 				WithField("prefix", tagEmailPrefix).
 				WithField("device", device.MachineName).
-				Warn("could extract user email tag, using fallback Slack user")
+				Warn("could not extract Falcon email tag from host, using fallback")
 
 			userEmail = config.Slack.SecurityUser
 		}
@@ -277,8 +299,6 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		user.Email = userEmail
 		results[userEmail] = user
 	}
-
-	logrus.Debugf("%+v", results)
 
 	return results, nil
 }
