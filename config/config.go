@@ -29,6 +29,7 @@ type Config struct {
 		SkipNoMitigation bool `yaml:"skip_no_mitigation" env:"FALCON_SKIP_NO_MITIGATION"`
 		SkipSeverities []string `yaml:"skip_severities" env:"FALCON_SKIP_SEVERITIES"`
 		MinCVEBaseScore int `yaml:"min_cve_base_score" env:"FALCON_MIN_CVE_BASE_SCORE"`
+		SkipCVEs []string `yaml:"skip_cves" env:"FALCON_SKIP_CVES"`
 	} `yaml:"falcon"`
 
 	WS1 struct {
