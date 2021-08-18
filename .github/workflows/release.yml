@@ -6,6 +6,7 @@ on:
 
 jobs:
   goreleaser:
+    name: release
     runs-on: ubuntu-latest
     steps:
     -
