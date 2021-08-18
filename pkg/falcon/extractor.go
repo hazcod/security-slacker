@@ -175,9 +175,27 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 	for _, vuln := range getResult.GetPayload().Resources {
 
 		if len(vuln.Remediation.Ids) == 0 && config.Falcon.SkipNoMitigation {
-			logrus.WithField("app", *vuln.App.ProductNameVersion).Debug("skipping vulnerability without remediation")
+			logrus.WithField("app", *vuln.App.ProductNameVersion).
+				Debug("skipping vulnerability without remediation")
 
 			continue
+		}
+
+		if *vuln.Cve.ID != "" && len(config.Falcon.SkipCVEs) > 0 {
+			vulnIgnore := false
+
+			for _, cve := range config.Falcon.SkipCVEs {
+				if strings.EqualFold(cve, *vuln.Cve.ID) {
+					vulnIgnore = true
+					break
+				}
+			}
+
+			if vulnIgnore {
+				logrus.WithField("cve", *vuln.Cve.ID).WithField("host", *vuln.HostInfo.Hostname).
+					Warn("skipping CVE")
+				continue
+			}
 		}
 
 		uniqueDeviceID, err := getUniqueDeviceID(*vuln.HostInfo)

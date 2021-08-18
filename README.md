@@ -47,6 +47,8 @@ falcon:
   skip_severities: ["low"]
   # minimum CVE base score to report
   min_cve_base_score: 0
+  # the CVEs you want to ignore
+  skip_cves: ["CVE-2019-15315"]
 
 # vmware workspace one
 ws1:
