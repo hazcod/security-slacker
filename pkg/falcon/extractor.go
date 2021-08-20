@@ -73,11 +73,13 @@ func findEmailTag(tags []string, emailDomains []string) (email string, err error
 
 	domainFound := false
 	for _, domain := range emailDomains {
-		if ! strings.Contains(email, strings.ToLower(domain)) {
+		encodedDomain := strings.ToLower(strings.ReplaceAll(domain, ".", "/"))
+
+		if ! strings.HasSuffix(email, encodedDomain) {
 			continue
 		}
 
-		email = strings.Replace(email, fmt.Sprintf("/%s", domain), fmt.Sprintf("@%s", domain), 1)
+		email = strings.Replace(email, fmt.Sprintf("/%s", encodedDomain), fmt.Sprintf("@%s", domain), 1)
 		email = strings.ReplaceAll(email, "/", ".")
 
 		domainFound = true
@@ -134,7 +136,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 	queryResult, err := client.SpotlightVulnerabilities.QueryVulnerabilities(
 		&spotlight_vulnerabilities.QueryVulnerabilitiesParams{
 			Context: ctx,
-			Filter:  "status:'open',remediation.ids:'*'",
+			Filter:  "status:'open'",
 			Limit:   &falconAPIMaxRecords,
 		},
 	)
