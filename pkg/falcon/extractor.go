@@ -36,8 +36,8 @@ type UserDeviceFinding struct {
 	ProductName         string
 	CveID               string
 	CveSeverity         string
-	MitigationAvailable bool
 	TimestampFound      string
+	Mitigations		    []string
 }
 
 func getUniqueDeviceID(hostInfo models.DomainAPIVulnerabilityHostInfoV2) (string, error) {
@@ -118,6 +118,20 @@ func appendUnique(main, adder []string) []string {
 	return main
 }
 
+func remove(a []string, i int) []string {
+	a[i] = a[len(a)-1] // Copy last element to index i.
+	a[len(a)-1] = ""   // Erase last element (write zero value).
+	a = a[:len(a)-1]   // Truncate slice.
+	return a
+}
+
+func removeFinding(a []UserDeviceFinding, i int) []UserDeviceFinding {
+	a[i] = a[len(a)-1] // Copy last element to index i.
+	a[len(a)-1] = UserDeviceFinding{}  // Erase last element (write zero value).
+	a = a[:len(a)-1]   // Truncate slice.
+	return a
+}
+
 func GetMessages(config *config.Config, ctx context.Context) (results map[string]FalconResult, err error) {
 	falconAPIMaxRecords := int64(400)
 
@@ -174,6 +188,8 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 	var hostTags []string
 	devices := map[string]UserDevice{}
 
+	var mitigationIDs []string
+
 	for _, vuln := range getResult.GetPayload().Resources {
 
 		if len(vuln.Remediation.Ids) == 0 && config.Falcon.SkipNoMitigation {
@@ -199,6 +215,8 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 				continue
 			}
 		}
+
+		mitigationIDs = appendUnique(mitigationIDs, vuln.Remediation.Ids)
 
 		uniqueDeviceID, err := getUniqueDeviceID(*vuln.HostInfo)
 		if err != nil {
@@ -239,15 +257,8 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 			ProductName:         *vuln.App.ProductNameVersion,
 			CveID:               *vuln.Cve.ID,
 			CveSeverity:         *vuln.Cve.Severity,
-			MitigationAvailable: len(vuln.Remediation.Ids) > 0,
 			TimestampFound:      *vuln.CreatedTimestamp,
-		}
-
-		if !deviceFinding.MitigationAvailable {
-			logrus.WithField("cve",*vuln.Cve.ID).WithField("severity", *vuln.Cve.Severity).
-				WithField("product", *vuln.App.ProductNameVersion).
-				Warn("skipping finding without mitigation(s)")
-			continue
+			Mitigations:		 vuln.Remediation.Ids,
 		}
 
 		if _, ok := devices[uniqueDeviceID]; !ok {
@@ -292,9 +303,64 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		return nil, errors.New("no tags found on decices")
 	}
 
+	logrus.WithField("remediations", len(mitigationIDs)).Debug("retrieving remediations")
+
+	remResp, err := client.SpotlightVulnerabilities.GetRemediationsV2(&spotlight_vulnerabilities.GetRemediationsV2Params{
+		Ids:        mitigationIDs,
+		Context:    ctx,
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, "could not retrieve remediations")
+	}
+
+	remediations := make(map[string]string)
+
+	for _, remRes := range remResp.GetPayload().Resources {
+		logrus.Tracef("%s -> %s", *remRes.ID, *remRes.Action)
+		remediations[*remRes.ID] = *remRes.Action
+	}
+
+	// remove useless mitigations that start with 'no fix available for'
+	for a, device := range devices {
+		for b, finding := range device.Findings {
+			for c, rem := range finding.Mitigations {
+				remText, remFound := remediations[rem]
+
+				if !remFound || strings.HasPrefix(strings.ToLower(remText), "no fix available for") {
+					logrus.WithField("rem", rem).WithField("rem_text", remText).WithField("device", device.MachineName).
+						Warn("skipping mitigation")
+
+					devices[a].Findings[b].Mitigations = remove(finding.Mitigations, c)
+					continue
+				}
+
+				finding.Mitigations[c] = remText
+			}
+		}
+	}
+
 	logrus.WithField("devices", len(devices)).Info("found vulnerable devices")
 
 	for _, device := range devices {
+		if len(device.Findings) == 0 {
+			continue
+		}
+
+		hasMitigations := false
+		for _, f := range device.Findings {
+			if len(f.Mitigations) > 0 {
+				hasMitigations = true
+				break
+			}
+		}
+
+		if !hasMitigations{
+			logrus.WithField("device", device.MachineName).
+				Debug("skipping device with vulnerabilities but no mitigations")
+			continue
+		}
+
 		userEmail, err := findEmailTag(device.Tags, config.Email.Domains)
 		if err != nil {
 			logrus.
