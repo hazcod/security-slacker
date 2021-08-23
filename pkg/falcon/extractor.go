@@ -125,13 +125,6 @@ func remove(a []string, i int) []string {
 	return a
 }
 
-func removeFinding(a []UserDeviceFinding, i int) []UserDeviceFinding {
-	a[i] = a[len(a)-1] // Copy last element to index i.
-	a[len(a)-1] = UserDeviceFinding{}  // Erase last element (write zero value).
-	a = a[:len(a)-1]   // Truncate slice.
-	return a
-}
-
 func GetMessages(config *config.Config, ctx context.Context) (results map[string]FalconResult, err error) {
 	falconAPIMaxRecords := int64(400)
 
