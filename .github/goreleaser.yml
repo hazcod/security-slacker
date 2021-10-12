@@ -22,6 +22,8 @@ builds:
   - linux
   - windows
   - freebsd
+  goarch:
+  - amd64
 
 archives:
 -
