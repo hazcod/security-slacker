@@ -30,6 +30,7 @@ type Config struct {
 		SkipSeverities []string `yaml:"skip_severities" env:"FALCON_SKIP_SEVERITIES"`
 		MinCVEBaseScore int `yaml:"min_cve_base_score" env:"FALCON_MIN_CVE_BASE_SCORE"`
 		SkipCVEs []string `yaml:"skip_cves" env:"FALCON_SKIP_CVES"`
+		MinExprtAISeverity string `yaml:"min_exprtai_severity" env:"FALCON_MIN_EXPRTAI_SEVERITYs"`
 	} `yaml:"falcon"`
 
 	WS1 struct {
