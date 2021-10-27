@@ -172,7 +172,9 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 	minExpertAIScore := 0
 	if newScore, err := getSeverityScore(config.Falcon.MinExprtAISeverity); err != nil {
 		return nil, errors.Wrap(err, "unknown minimum exprtai severity specified")
-	} else { minExpertAIScore = newScore }
+	} else {
+		minExpertAIScore = newScore
+	}
 
 	for _, vuln := range queryResult.GetPayload().Resources {
 
