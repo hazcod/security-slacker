@@ -97,7 +97,12 @@ func main() {
 
 		userWS1Msg := ws1Messages[userEmail]
 
-		if len(userFalconMsg.Devices) == 0 && len(userWS1Msg.Devices) == 0 {
+		numFindings := 0
+		for _, device := range userWS1Msg.Devices {
+			numFindings += len(device.Findings)
+		}
+
+		if len(userFalconMsg.Devices) == 0 && numFindings == 0 {
 			continue
 		}
 
