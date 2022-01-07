@@ -18,22 +18,36 @@ func BuildSecurityOverviewMessage(logger *logrus.Logger, config config.Config, f
 	}
 
 	var allFalcon []falcon.FalconResult
-	for _, f := range falconResults { allFalcon = append(allFalcon, f) }
+	for _, f := range falconResults {
+		allFalcon = append(allFalcon, f)
+	}
 
 	var allWS1 []ws1.WS1Result
-	for _, w := range ws1Results { allWS1 = append(allWS1, w) }
+	for _, w := range ws1Results {
+		hasIssues := false
+		for _, device := range w.Devices {
+			if len(device.Findings) > 0 {
+				hasIssues = true
+				break
+			}
+		}
+
+		if hasIssues {
+			allWS1 = append(allWS1, w)
+		}
+	}
 
 	logrus.Debugf("findings: falcon: %d ws1: %d", len(allFalcon), len(allWS1))
 
 	variables := struct {
 		Falcon []falcon.FalconResult
-		WS1 []ws1.WS1Result
-		Date time.Time
+		WS1    []ws1.WS1Result
+		Date   time.Time
 		Errors []error
 	}{
-		Date: time.Now(),
+		Date:   time.Now(),
 		Falcon: allFalcon,
-		WS1: allWS1,
+		WS1:    allWS1,
 		Errors: reportedErrors,
 	}
 
