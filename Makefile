@@ -1,4 +1,3 @@
-
 clean:
 	rm slacker || true
 
