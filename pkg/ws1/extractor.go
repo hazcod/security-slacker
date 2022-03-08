@@ -16,14 +16,14 @@ import (
 )
 
 type WS1Result struct {
-	Email string
+	Email   string
 	Devices []UserDevice
 }
 
 type UserDevice struct {
 	MachineName string
 	Compromised bool
-	LastSeen  time.Time
+	LastSeen    time.Time
 	Findings    []UserDeviceFinding
 }
 
@@ -51,10 +51,10 @@ func doAuthRequest(user, pass, apiKey, url, method string, payload interface{}) 
 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("aw-tenant-code", apiKey)
-	req.Header.Set("Authorization", "Basic " + basicAuth(user, pass))
+	req.Header.Set("Authorization", "Basic "+basicAuth(user, pass))
 
 	httpClient := http.Client{
-		Timeout:       time.Second * 10,
+		Timeout: time.Second * 10,
 	}
 
 	resp, err := httpClient.Do(req)
@@ -77,26 +77,30 @@ func doAuthRequest(user, pass, apiKey, url, method string, payload interface{}) 
 	return respBytes, nil
 }
 
-func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Result, error) {
+func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Result, []string, error) {
 	deviceResponseB, err := doAuthRequest(
 		config.WS1.User, config.WS1.Password, config.WS1.APIKey,
-		strings.TrimRight(config.WS1.Endpoint, "/") + "/mdm/devices/search?compliance_status=NonCompliant",
+		strings.TrimRight(config.WS1.Endpoint, "/")+"/mdm/devices/search?compliance_status=NonCompliant",
 		http.MethodGet,
 		nil,
 	)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "could not fetch WS1 devices")
+		return nil, nil, errors.Wrap(err, "could not fetch WS1 devices")
 	}
+
+	usersWithDevices := []string{}
 
 	var devicesResponse DevicesResponse
 	if err := json.Unmarshal(deviceResponseB, &devicesResponse); err != nil {
-		return nil, errors.Wrap(err, "could not deserialize getDevices call")
+		return nil, nil, errors.Wrap(err, "could not deserialize getDevices call")
 	}
 
 	result := make(map[string]WS1Result)
 
 	for _, device := range devicesResponse.Devices {
+		usersWithDevices = append(usersWithDevices, strings.ToLower(device.UserEmailAddress))
+
 		if strings.EqualFold(device.ComplianceStatus, "Compliant") {
 			continue
 		}
@@ -122,7 +126,9 @@ func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Resu
 		}
 
 		for _, policy := range device.ComplianceSummary.DeviceCompliance {
-			if policy.CompliantStatus { continue }
+			if policy.CompliantStatus {
+				continue
+			}
 
 			shouldSkip := false
 			for _, filter := range config.WS1.SkipFilters {
@@ -134,7 +140,9 @@ func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Resu
 				}
 				shouldSkip = true
 			}
-			if shouldSkip { continue }
+			if shouldSkip {
+				continue
+			}
 
 			userDevice.Findings = append(userDevice.Findings, UserDeviceFinding{
 				ComplianceName: policy.PolicyName,
@@ -146,5 +154,5 @@ func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Resu
 		result[userEmail] = ws1Result
 	}
 
-	return result, nil
+	return result, usersWithDevices, nil
 }

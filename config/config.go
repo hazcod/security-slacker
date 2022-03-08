@@ -17,7 +17,7 @@ type Config struct {
 		Token        string `yaml:"token" env:"SLACK_TOKEN"`
 		SecurityUser string `yaml:"security_user" emv:"SLACK_SECURITY_USER"`
 
-		SkipNoReport bool `yaml:"skip_no_report" env:"SLACK_SKIP_NO_REPORT"`
+		SkipNoReport  bool `yaml:"skip_no_report" env:"SLACK_SKIP_NO_REPORT"`
 		SkipOnHoliday bool `yaml:"skip_on_holiday" env:"SLACK_SKIP_ON_HOLIDAY"`
 	} `yaml:"slack"`
 
@@ -26,31 +26,32 @@ type Config struct {
 		Secret      string `yaml:"secret" env:"FALCON_SECRET"`
 		CloudRegion string `yaml:"cloud_region" env:"FALCON_CLOUD_REGION"`
 
-		SkipNoMitigation bool `yaml:"skip_no_mitigation" env:"FALCON_SKIP_NO_MITIGATION"`
-		SkipSeverities []string `yaml:"skip_severities" env:"FALCON_SKIP_SEVERITIES"`
-		MinCVEBaseScore int `yaml:"min_cve_base_score" env:"FALCON_MIN_CVE_BASE_SCORE"`
-		SkipCVEs []string `yaml:"skip_cves" env:"FALCON_SKIP_CVES"`
-		MinExprtAISeverity string `yaml:"min_exprtai_severity" env:"FALCON_MIN_EXPRTAI_SEVERITYs"`
+		SkipNoMitigation   bool     `yaml:"skip_no_mitigation" env:"FALCON_SKIP_NO_MITIGATION"`
+		SkipSeverities     []string `yaml:"skip_severities" env:"FALCON_SKIP_SEVERITIES"`
+		MinCVEBaseScore    int      `yaml:"min_cve_base_score" env:"FALCON_MIN_CVE_BASE_SCORE"`
+		SkipCVEs           []string `yaml:"skip_cves" env:"FALCON_SKIP_CVES"`
+		MinExprtAISeverity string   `yaml:"min_exprtai_severity" env:"FALCON_MIN_EXPRTAI_SEVERITYs"`
 	} `yaml:"falcon"`
 
 	WS1 struct {
 		Endpoint string `yaml:"api_url" env:"WS1_API_URL"`
-		APIKey string `yaml:"api_key" env:"WS1_API_KEY"`
-		User string `yaml:"user" env:"WS1_USER"`
+		APIKey   string `yaml:"api_key" env:"WS1_API_KEY"`
+		User     string `yaml:"user" env:"WS1_USER"`
 		Password string `yaml:"password" env:"WS1_PASSWORD"`
 
 		SkipFilters []struct {
 			Policy string `yaml:"policy"`
-			User string `yaml:"user"`
-		}  `yaml:"skip"`
+			User   string `yaml:"user"`
+		} `yaml:"skip"`
 	} `yaml:"ws1"`
 
 	Email struct {
-		Domains []string `yaml:"domains" env:"DOMAINS"`
+		Domains   []string `yaml:"domains" env:"DOMAINS"`
+		Whitelist []string `yaml:"whitelist" env:"WHITELIST"`
 	} `yaml:"email"`
 
 	Templates struct {
-		UserMessage string `yaml:"user_message" env:"USER_MESSAGE"`
+		UserMessage             string `yaml:"user_message" env:"USER_MESSAGE"`
 		SecurityOverviewMessage string `yaml:"security_overview_message" env:"SECURITY_OVERVIEW_MESSAGE"`
 	} `yaml:"templates"`
 }

@@ -40,15 +40,17 @@ func BuildSecurityOverviewMessage(logger *logrus.Logger, config config.Config, f
 	logrus.Debugf("findings: falcon: %d ws1: %d", len(allFalcon), len(allWS1))
 
 	variables := struct {
-		Falcon []falcon.FalconResult
-		WS1    []ws1.WS1Result
-		Date   time.Time
-		Errors []error
+		Falcon        []falcon.FalconResult
+		WS1           []ws1.WS1Result
+		Date          time.Time
+		Errors        []error
+		MissingSensor []ws1.UserDevice
 	}{
 		Date:   time.Now(),
 		Falcon: allFalcon,
 		WS1:    allWS1,
 		Errors: reportedErrors,
+		//MissingSensor: devicesWithoutFalcon,
 	}
 
 	var buffer bytes.Buffer
