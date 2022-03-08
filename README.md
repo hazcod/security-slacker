@@ -66,7 +66,11 @@ ws1:
 
 # email domains used in your Slack workspace for filtering
 # e.g. for a Slack account user@mycompany.com
-email.domains: ["mycompany.com"]
+email:
+  domains: ["mycompany.com"]
+  # any users that shouldn't be in MDM or EDR
+  whitelist:
+  - foo@company.com
 
 # what is sent to the user in Go templating
 templates:
