@@ -90,7 +90,7 @@ func main() {
 	for _, slackUser := range slackUsers {
 		userEmail := strings.ToLower(slackUser.Profile.Email)
 
-		if slackUser.IsBot {
+		if slackUser.IsBot || slackUser.Deleted {
 			continue
 		}
 
@@ -101,6 +101,32 @@ func main() {
 		numFindings := 0
 		for _, device := range userWS1Msg.Devices {
 			numFindings += len(device.Findings)
+		}
+
+		// check if every slack user has a device in MDM
+		hasDevice := false
+		for _, userWDevice := range usersWithDevices {
+			if strings.EqualFold(userWDevice, userEmail) {
+				hasDevice = true
+				break
+			}
+		}
+
+		if !hasDevice {
+
+			isWhitelisted := false
+			for _, whitelist := range config.Email.Whitelist {
+				if strings.EqualFold(whitelist, userEmail) {
+					isWhitelisted = true
+					break
+				}
+			}
+
+			if !isWhitelisted {
+				errorsToReport = append(errorsToReport, errors.Newf(
+					"%s does not have a device in MDM nor a sensor", userEmail,
+				))
+			}
 		}
 
 		if len(userFalconMsg.Devices) == 0 && numFindings == 0 {
