@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/crowdstrike/gofalcon/falcon/client/hosts"
 	"github.com/pkg/errors"
 	"strings"
 
@@ -19,6 +20,7 @@ import (
 const (
 	tagEmailPrefix  = "email/"
 	tagFalconPrefix = "FalconGroupingTags/"
+	tagSensorPrefix = "SensorGroupingTags/"
 )
 
 type FalconResult struct {
@@ -27,17 +29,18 @@ type FalconResult struct {
 }
 
 type UserDevice struct {
+	Hostname    string
 	MachineName string
 	Tags        []string
 	Findings    []UserDeviceFinding
 }
 
 type UserDeviceFinding struct {
-	ProductName         string
-	CveID               string
-	CveSeverity         string
-	TimestampFound      string
-	Mitigations		    []string
+	ProductName    string
+	CveID          string
+	CveSeverity    string
+	TimestampFound string
+	Mitigations    []string
 }
 
 func getUniqueDeviceID(hostInfo models.DomainAPIVulnerabilityHostFacetV2) (string, error) {
@@ -56,6 +59,7 @@ func findEmailTag(tags []string, emailDomains []string) (email string, err error
 	for _, tag := range tags {
 		tag = strings.ToLower(tag)
 		tag = strings.TrimPrefix(tag, strings.ToLower(tagFalconPrefix))
+		tag = strings.TrimPrefix(tag, strings.ToLower(tagSensorPrefix))
 
 		logrus.WithField("tag", tag).Trace("looking at falcon tag")
 
@@ -75,7 +79,7 @@ func findEmailTag(tags []string, emailDomains []string) (email string, err error
 	for _, domain := range emailDomains {
 		encodedDomain := strings.ToLower(strings.ReplaceAll(domain, ".", "/"))
 
-		if ! strings.HasSuffix(email, encodedDomain) {
+		if !strings.HasSuffix(email, encodedDomain) {
 			continue
 		}
 
@@ -110,7 +114,9 @@ func appendUnique(main, adder []string) []string {
 			}
 		}
 
-		if found { continue }
+		if found {
+			continue
+		}
 
 		main = append(main, adder[i])
 	}
@@ -135,7 +141,7 @@ func getSeverityScore(severity string) (int, error) {
 	return -1, errors.New("unknown severity: " + severity)
 }
 
-func GetMessages(config *config.Config, ctx context.Context) (results map[string]FalconResult, err error) {
+func GetMessages(config *config.Config, ctx context.Context) (results map[string]FalconResult, usersWithSensors []string, err error) {
 	falconAPIMaxRecords := int64(400)
 
 	results = map[string]FalconResult{}
@@ -147,7 +153,38 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		Context:      ctx,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "could not initialize Falcon client")
+		return nil, nil, errors.Wrap(err, "could not initialize Falcon client")
+	}
+
+	hostResult, err := client.Hosts.QueryDevicesByFilter(
+		&hosts.QueryDevicesByFilterParams{
+			Filter:  nil,
+			Limit:   &falconAPIMaxRecords,
+			Offset:  nil,
+			Sort:    nil,
+			Context: ctx,
+		},
+	)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "could not query all hosts")
+	}
+
+	hostDetail, err := client.Hosts.GetDeviceDetails(&hosts.GetDeviceDetailsParams{
+		Ids:        hostResult.Payload.Resources,
+		Context:    ctx,
+		HTTPClient: nil,
+	})
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "could not query all host details")
+	}
+
+	for _, detail := range hostDetail.Payload.Resources {
+		email, err := findEmailTag(detail.Tags, config.Email.Domains)
+		if err != nil || email == "" {
+			email = "_NOTAG/" + detail.Hostname
+		}
+
+		usersWithSensors = append(usersWithSensors, strings.ToLower(email))
 	}
 
 	queryResult, err := client.SpotlightVulnerabilities.CombinedQueryVulnerabilities(
@@ -155,15 +192,15 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 			Context: ctx,
 			Filter:  "status:'open'",
 			Limit:   &falconAPIMaxRecords,
-			Facet: []string{"host_info", "cve", "remediation"},
+			Facet:   []string{"host_info", "cve", "remediation"},
 		},
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not query vulnerabilities")
+		return nil, nil, errors.Wrap(err, "could not query vulnerabilities")
 	}
 
 	if queryResult == nil {
-		return nil, errors.New("QueryVulnerabilities result was nil")
+		return nil, nil, errors.New("QueryVulnerabilities result was nil")
 	}
 
 	var hostTags []string
@@ -171,7 +208,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 
 	minExpertAIScore := 0
 	if newScore, err := getSeverityScore(config.Falcon.MinExprtAISeverity); err != nil {
-		return nil, errors.Wrap(err, "unknown minimum exprtai severity specified")
+		return nil, nil, errors.Wrap(err, "unknown minimum exprtai severity specified")
 	} else {
 		minExpertAIScore = newScore
 	}
@@ -279,6 +316,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 
 			if _, ok := devices[uniqueDeviceID]; !ok {
 				devices[uniqueDeviceID] = UserDevice{
+					Hostname: *vuln.HostInfo.Hostname,
 					MachineName: fmt.Sprintf(
 						"%s %s",
 						*vuln.HostInfo.OsVersion,
@@ -313,11 +351,11 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 	}
 
 	if len(devices) == 0 {
-		return results, nil
+		return results, nil, nil
 	}
 
 	if len(hostTags) == 0 {
-		return nil, errors.New("no tags found on decices")
+		return nil, nil, errors.New("no tags found on decices")
 	}
 
 	logrus.WithField("devices", len(devices)).Info("found vulnerable devices")
@@ -335,7 +373,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 			}
 		}
 
-		if !hasMitigations{
+		if !hasMitigations {
 			logrus.WithField("device", device.MachineName).
 				Debug("skipping device with vulnerabilities but no mitigations")
 			continue
@@ -366,5 +404,5 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		results[userEmail] = user
 	}
 
-	return results, nil
+	return results, usersWithSensors, nil
 }

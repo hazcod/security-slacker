@@ -6,6 +6,7 @@ import (
 	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/overview/security"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/overview/user"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/ws1"
+	"gopkg.in/errgo.v2/fmt/errors"
 	"os"
 	"strings"
 
@@ -49,12 +50,12 @@ func main() {
 
 	// ---
 
-	falconMessages, err := falcon.GetMessages(config, ctx)
+	falconMessages, usersWithSensors, err := falcon.GetMessages(config, ctx)
 	if err != nil {
 		logrus.WithError(err).Fatal("could not get falcon messages")
 	}
 
-	ws1Messages, err := ws1.GetMessages(config, ctx)
+	ws1Messages, usersWithDevices, err := ws1.GetMessages(config, ctx)
 	if err != nil {
 		logrus.WithError(err).Fatal("could not get WS1 messages")
 	}
@@ -156,6 +157,39 @@ func main() {
 			os.Exit(0)
 		}
 	}
+
+	// --- find users without sensors
+
+	for _, userWithSensor := range usersWithSensors {
+		if strings.HasPrefix(userWithSensor, "_NOTAG/") {
+			errorsToReport = append(errorsToReport, errors.Newf(
+				"%s does not have a user email tag assigned", strings.Split("/", userWithSensor)[1],
+			))
+		}
+	}
+
+	for _, userWDevice := range usersWithDevices {
+		if strings.TrimSpace(userWDevice) == "" {
+			continue
+		}
+
+		found := false
+
+		for _, userWSensor := range usersWithSensors {
+			if strings.EqualFold(userWDevice, userWSensor) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			errorsToReport = append(errorsToReport, errors.Newf(
+				"%s does not have at least one sensor assigned", userWDevice),
+			)
+		}
+	}
+
+	// ---
 
 	overviewText, err := security.BuildSecurityOverviewMessage(logrus.StandardLogger(), *config, falconMessages, ws1Messages, errorsToReport)
 	if err != nil {
