@@ -113,10 +113,10 @@ func main() {
 		}
 
 		if !hasDevice {
-
 			isWhitelisted := false
+
 			for _, whitelist := range config.Email.Whitelist {
-				if strings.EqualFold(whitelist, userEmail) {
+				if strings.EqualFold(strings.TrimSpace(whitelist), strings.TrimSpace(userEmail)) {
 					isWhitelisted = true
 					break
 				}
