@@ -90,9 +90,11 @@ func main() {
 	for _, slackUser := range slackUsers {
 		userEmail := strings.ToLower(slackUser.Profile.Email)
 
-		if slackUser.IsBot || slackUser.Deleted {
+		if slackUser.IsBot || slackUser.Deleted || "" == slackUser.Profile.Email {
 			continue
 		}
+
+		logrus.WithField("email", slackUser.Profile.Email).Debug("looking at Slack user")
 
 		userFalconMsg := falconMessages[userEmail]
 
