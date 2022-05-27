@@ -147,11 +147,11 @@ func main() {
 					isOnHoliday = true
 					break
 				}
+			}
 
-				if isOnHoliday {
-					logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
-					continue
-				}
+			if isOnHoliday {
+				logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
+				continue
 			}
 		}
 
