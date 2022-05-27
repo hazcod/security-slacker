@@ -16,8 +16,11 @@ import (
 	"github.com/slack-go/slack"
 )
 
-const (
-	slackStatusHoliday = "vacationing"
+var (
+	slackStatusHolidays = []string{
+		"vacationing",
+		"absent",
+	}
 )
 
 func main() {
@@ -135,9 +138,21 @@ func main() {
 			continue
 		}
 
-		if config.Slack.SkipOnHoliday && strings.EqualFold(slackUser.Profile.StatusText, slackStatusHoliday) {
-			logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
-			continue
+		if config.Slack.SkipOnHoliday {
+			isOnHoliday := false
+			slackStatus := strings.ToLower(slackUser.Profile.StatusText)
+
+			for _, statusPrefix := range slackStatusHolidays {
+				if strings.HasPrefix(slackStatus, statusPrefix) {
+					isOnHoliday = true
+					break
+				}
+			}
+
+			if isOnHoliday {
+				logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
+				continue
+			}
 		}
 
 		logrus.WithField("falcon", len(userFalconMsg.Devices)).WithField("ws1", len(userWS1Msg.Devices)).WithField("email", userEmail).
