@@ -386,9 +386,9 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 				WithField("tags", device.Tags).
 				WithField("prefix", tagEmailPrefix).
 				WithField("device", device.MachineName).
-				Warn("could not extract Falcon email tag from host, using fallback")
+				Warn("could not extract Falcon email tag from host, using first fallback")
 
-			userEmail = config.Slack.SecurityUser
+			userEmail = config.Slack.SecurityUser[0]
 		}
 
 		user, ok := results[userEmail]

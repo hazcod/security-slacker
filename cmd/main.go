@@ -73,16 +73,22 @@ func main() {
 		logrus.WithError(err).Fatal("could not fetch slack users")
 	}
 
-	securityUserID := ""
+	securityUserIDs := map[string]string{}
 	for _, slackUser := range slackUsers {
-		if strings.EqualFold(slackUser.Profile.Email, config.Slack.SecurityUser) {
-			securityUserID = slackUser.ID
+		for _, secUser := range config.Slack.SecurityUser {
+			if strings.EqualFold(slackUser.Profile.Email, secUser) {
+				securityUserIDs[secUser] = slackUser.ID
+				break
+			}
+		}
+
+		if len(securityUserIDs) == len(config.Slack.SecurityUser) {
 			break
 		}
 	}
 
-	if securityUserID == "" && !*noReport {
-		logrus.WithField("fallback_user", config.Slack.SecurityUser).
+	if len(securityUserIDs) == 0 && !*noReport {
+		logrus.WithField("fallback_users", config.Slack.SecurityUser).
 			Fatal("could not find fallback user on Slack")
 	}
 
@@ -239,15 +245,17 @@ func main() {
 		logrus.WithError(err).Fatal("could not generate security overview")
 	}
 
-	logrus.WithField("email", config.Slack.SecurityUser).
-		Debug("sending security report to security user")
+	logrus.WithField("emails", config.Slack.SecurityUser).
+		Debug("sending security report to security users")
 
-	if _, _, _, err := slackClient.SendMessage(
-		securityUserID, slack.MsgOptionText(overviewText, false), slack.MsgOptionAsUser(true),
-	); err != nil {
-		logrus.WithField("email", config.Slack.SecurityUser).WithError(err).
-			Fatal("could not send security overview to security user")
+	for _, secUser := range config.Slack.SecurityUser {
+		if _, _, _, err := slackClient.SendMessage(
+			securityUserIDs[secUser], slack.MsgOptionText(overviewText, false), slack.MsgOptionAsUser(true),
+		); err != nil {
+			logrus.WithField("email", secUser).WithError(err).
+				Fatal("could not send security overview to security user")
+		}
+
+		logrus.WithField("email", secUser).Info("sent security overview to security user")
 	}
-
-	logrus.WithField("email", config.Slack.SecurityUser).Info("sent security overview to security user")
 }
