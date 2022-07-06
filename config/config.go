@@ -14,8 +14,8 @@ const (
 
 type Config struct {
 	Slack struct {
-		Token        string `yaml:"token" env:"SLACK_TOKEN"`
-		SecurityUser string `yaml:"security_user" emv:"SLACK_SECURITY_USER"`
+		Token        string   `yaml:"token" env:"SLACK_TOKEN"`
+		SecurityUser []string `yaml:"security_user" emv:"SLACK_SECURITY_USER"`
 
 		SkipNoReport  bool `yaml:"skip_no_report" env:"SLACK_SKIP_NO_REPORT"`
 		SkipOnHoliday bool `yaml:"skip_on_holiday" env:"SLACK_SKIP_ON_HOLIDAY"`

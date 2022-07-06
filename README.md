@@ -28,7 +28,7 @@ slack:
   # slack bot token
   token: "XXX"
   # Slack user that receives  messages if the user is not found
-  security_user: "security@mycompany.com"
+  security_user: ["security@mycompany.com"]
   # skip sending a security overview if there is nothing to mention
   skip_no_report: true
   # don't send a message to the user if 'Vacationing' status is set
