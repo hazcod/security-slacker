@@ -313,7 +313,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 				CveID:          *vuln.Cve.ID,
 				CveSeverity:    vuln.Cve.Severity,
 				TimestampFound: *vuln.CreatedTimestamp,
-				DaysOpen:       uint(math.Ceil(time.Now().Sub(createdTime).Hours() / 24)),
+				DaysOpen:       uint(math.Ceil(time.Since(createdTime).Hours() / 24)),
 			}
 
 			for _, mitigation := range vuln.Remediation.Entities {
