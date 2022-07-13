@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"github.com/crowdstrike/gofalcon/falcon/client/hosts"
 	"github.com/pkg/errors"
+	"math"
 	"strings"
+	"time"
 
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/crowdstrike/gofalcon/falcon/client/spotlight_vulnerabilities"
@@ -40,6 +42,7 @@ type UserDeviceFinding struct {
 	CveID          string
 	CveSeverity    string
 	TimestampFound string
+	DaysOpen       uint
 	Mitigations    []string
 }
 
@@ -299,11 +302,18 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 				WithField("severity", vuln.Cve.Severity).WithField("cve", *vuln.Cve.ID).
 				Debug("adding vulnerability")
 
+			createdTime, err := time.Parse(time.RFC3339, *vuln.CreatedTimestamp)
+			if err != nil {
+				logrus.WithField("created_timestamp", *vuln.CreatedTimestamp).WithError(err).
+					Error("could not parse created timestamp as RFC3339")
+			}
+
 			deviceFinding := UserDeviceFinding{
 				ProductName:    *vulnApp.ProductNameVersion,
 				CveID:          *vuln.Cve.ID,
 				CveSeverity:    vuln.Cve.Severity,
 				TimestampFound: *vuln.CreatedTimestamp,
+				DaysOpen:       uint(math.Ceil(time.Since(createdTime).Hours() / 24)),
 			}
 
 			for _, mitigation := range vuln.Remediation.Entities {

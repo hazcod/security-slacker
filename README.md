@@ -113,7 +113,7 @@ templates:
     :man-surfing: *{{ $result.Email }}*
     {{ range $device := $result.Devices }}
       :computer: {{ $device.MachineName}}
-      {{ range $vuln := $device.Findings }}- {{ $vuln.ProductName }} ({{ $vuln.CveSeverity }}) ({{ $vuln.TimestampFound }}) ({{ $vuln.CveID }}){{ end }}
+      {{ range $vuln := $device.Findings }}- {{ $vuln.ProductName }} ({{ $vuln.CveSeverity }}) (Open for {{ $vuln.DaysOpen }} days) ({{ $vuln.CveID }}){{ end }}
     {{ end }}
     {{ end }}
 
