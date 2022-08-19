@@ -103,8 +103,6 @@ func main() {
 			continue
 		}
 
-		logrus.WithField("email", slackUser.Profile.Email).Debug("looking at Slack user")
-
 		userFalconMsg := falconMessages[userEmail]
 
 		userWS1Msg := ws1Messages[userEmail]
@@ -143,6 +141,8 @@ func main() {
 		if len(userFalconMsg.Devices) == 0 && numFindings == 0 {
 			continue
 		}
+
+		logrus.WithField("email", slackUser.Profile.Email).Debug("looking at Slack user")
 
 		if config.Slack.SkipOnHoliday {
 			isOnHoliday := false
