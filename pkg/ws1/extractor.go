@@ -3,12 +3,13 @@ package ws1
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/config"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
+	"golang.org/x/oauth2/clientcredentials"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -31,12 +32,7 @@ type UserDeviceFinding struct {
 	ComplianceName string
 }
 
-func basicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
-}
-
-func doAuthRequest(user, pass, apiKey, url, method string, payload interface{}) (respBytes []byte, err error) {
+func doAuthRequest(ctx context.Context, ws1AuthLocation, clientID, secret, url, method string, payload interface{}) (respBytes []byte, err error) {
 	var reqPayload []byte
 	if payload != nil {
 		if reqPayload, err = json.Marshal(&payload); err != nil {
@@ -44,18 +40,18 @@ func doAuthRequest(user, pass, apiKey, url, method string, payload interface{}) 
 		}
 	}
 
+	oauth2Config := clientcredentials.Config{ClientID: clientID, ClientSecret: secret,
+		TokenURL: fmt.Sprintf("https://%s.uemauth.vmwservices.com/connect/token", ws1AuthLocation)}
+	httpClient := oauth2Config.Client(ctx)
+	httpClient.Timeout = time.Second * 10
+
 	req, err := http.NewRequest(method, url, bytes.NewReader(reqPayload))
+	req = req.WithContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "request failed")
 	}
 
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("aw-tenant-code", apiKey)
-	req.Header.Set("Authorization", "Basic "+basicAuth(user, pass))
-
-	httpClient := http.Client{
-		Timeout: time.Second * 10,
-	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -63,14 +59,14 @@ func doAuthRequest(user, pass, apiKey, url, method string, payload interface{}) 
 	}
 
 	if resp.StatusCode > 399 {
-		respB, _ := ioutil.ReadAll(resp.Body)
+		respB, _ := io.ReadAll(resp.Body)
 		logrus.WithField("response", string(respB)).Warn("invalid response")
 		return nil, errors.New("invalid response code: " + strconv.Itoa(resp.StatusCode))
 	}
 
 	defer resp.Body.Close()
 
-	if respBytes, err = ioutil.ReadAll(resp.Body); err != nil {
+	if respBytes, err = io.ReadAll(resp.Body); err != nil {
 		return nil, errors.New("could not read response body")
 	}
 
@@ -79,7 +75,8 @@ func doAuthRequest(user, pass, apiKey, url, method string, payload interface{}) 
 
 func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Result, []string, error) {
 	deviceResponseB, err := doAuthRequest(
-		config.WS1.User, config.WS1.Password, config.WS1.APIKey,
+		ctx,
+		config.WS1.AuthLocation, config.WS1.ClientID, config.WS1.ClientSecret,
 		strings.TrimRight(config.WS1.Endpoint, "/")+"/mdm/devices/search?compliance_status=NonCompliant",
 		http.MethodGet,
 		nil,
@@ -89,7 +86,7 @@ func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Resu
 		return nil, nil, errors.Wrap(err, "could not fetch WS1 devices")
 	}
 
-	usersWithDevices := []string{}
+	usersWithDevices := make([]string, 0)
 
 	var devicesResponse DevicesResponse
 	if err := json.Unmarshal(deviceResponseB, &devicesResponse); err != nil {
