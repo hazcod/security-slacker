@@ -3,13 +3,15 @@ package ws1
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/config"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -31,12 +33,95 @@ type UserDeviceFinding struct {
 	ComplianceName string
 }
 
-func basicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
+type LoggedRoundTripper struct {
+	Proxied http.RoundTripper
+	Logger  *logrus.Logger
 }
 
-func doAuthRequest(user, pass, apiKey, url, method string, payload interface{}) (respBytes []byte, err error) {
+func (t LoggedRoundTripper) RoundTrip(req *http.Request) (res *http.Response, e error) {
+	resp, err := t.Proxied.RoundTrip(req)
+
+	if t.Logger != nil && t.Logger.IsLevelEnabled(logrus.TraceLevel) {
+		dumped, err := httputil.DumpRequest(req, true)
+		if err != nil {
+			t.Logger.WithError(err).Error("could not dump http request")
+		} else {
+			t.Logger.Trace(string(dumped))
+		}
+
+		if req.Response == nil {
+			t.Logger.Trace("No response")
+		} else {
+			dumped, err = httputil.DumpResponse(req.Response, true)
+			if err != nil {
+				t.Logger.WithError(err).Error("could not dump http response")
+			} else {
+				t.Logger.Trace(string(dumped))
+			}
+		}
+	}
+
+	return resp, err
+}
+
+type authResponse struct {
+	Token   string `json:"access_token"`
+	Expires int    `json:"expires_in"`
+	Type    string `json:"token_type"`
+}
+
+func renewAuth(_ context.Context, ws1AuthLocation, clientID, secret string) (token string, expiry time.Time, err error) {
+	data := url.Values{
+		"client_id":     {clientID},
+		"client_secret": {secret},
+		"grant_type":    {"client_credentials"},
+	}
+
+	resp, err := http.PostForm(fmt.Sprintf("https://%s.uemauth.vmwservices.com/connect/token", ws1AuthLocation), data)
+	if err != nil {
+		return "", time.Time{}, errors.Wrap(err, "could not post to token endpoint")
+	}
+
+	if resp.StatusCode > 399 {
+		return "", time.Time{}, errors.Errorf("token endpoint returned status code: %d", resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+
+	respB, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", time.Time{}, errors.Wrap(err, "could not read token response")
+	}
+
+	logrus.Debugf("%s", string(respB))
+
+	var response authResponse
+	if err := json.Unmarshal(respB, &response); err != nil {
+		return "", time.Time{}, errors.Wrap(err, "could not decode token response")
+	}
+
+	if !strings.EqualFold(response.Type, "bearer") {
+		return "", time.Time{}, errors.Wrap(err, "not a bearer token")
+	}
+
+	if response.Expires <= 0 {
+		return "", time.Time{}, errors.New("empty expires returned")
+	}
+
+	if response.Token == "" {
+		return "", time.Time{}, errors.New("no token returned")
+	}
+
+	timeExpires := time.Now().Add(time.Second * time.Duration(response.Expires))
+
+	if timeExpires.Before(time.Now()) {
+		return "", time.Time{}, errors.New("token retrieved is already expired")
+	}
+
+	return response.Token, timeExpires, nil
+}
+
+func doAuthRequest(ctx context.Context, ws1AuthLocation, clientID, secret, url, method string, payload interface{}) (respBytes []byte, err error) {
 	var reqPayload []byte
 	if payload != nil {
 		if reqPayload, err = json.Marshal(&payload); err != nil {
@@ -44,33 +129,35 @@ func doAuthRequest(user, pass, apiKey, url, method string, payload interface{}) 
 		}
 	}
 
+	token, _, err := renewAuth(ctx, ws1AuthLocation, clientID, secret)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not renew auth")
+	}
+
 	req, err := http.NewRequest(method, url, bytes.NewReader(reqPayload))
+	req = req.WithContext(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "request failed")
 	}
 
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("aw-tenant-code", apiKey)
-	req.Header.Set("Authorization", "Basic "+basicAuth(user, pass))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
-	httpClient := http.Client{
-		Timeout: time.Second * 10,
-	}
-
+	httpClient := http.Client{Timeout: time.Second * 10}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "http request failed")
 	}
 
 	if resp.StatusCode > 399 {
-		respB, _ := ioutil.ReadAll(resp.Body)
+		respB, _ := io.ReadAll(resp.Body)
 		logrus.WithField("response", string(respB)).Warn("invalid response")
 		return nil, errors.New("invalid response code: " + strconv.Itoa(resp.StatusCode))
 	}
 
 	defer resp.Body.Close()
 
-	if respBytes, err = ioutil.ReadAll(resp.Body); err != nil {
+	if respBytes, err = io.ReadAll(resp.Body); err != nil {
 		return nil, errors.New("could not read response body")
 	}
 
@@ -79,7 +166,8 @@ func doAuthRequest(user, pass, apiKey, url, method string, payload interface{}) 
 
 func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Result, []string, error) {
 	deviceResponseB, err := doAuthRequest(
-		config.WS1.User, config.WS1.Password, config.WS1.APIKey,
+		ctx,
+		config.WS1.AuthLocation, config.WS1.ClientID, config.WS1.ClientSecret,
 		strings.TrimRight(config.WS1.Endpoint, "/")+"/mdm/devices/search?compliance_status=NonCompliant",
 		http.MethodGet,
 		nil,
@@ -89,7 +177,7 @@ func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Resu
 		return nil, nil, errors.Wrap(err, "could not fetch WS1 devices")
 	}
 
-	usersWithDevices := []string{}
+	usersWithDevices := make([]string, 0)
 
 	var devicesResponse DevicesResponse
 	if err := json.Unmarshal(deviceResponseB, &devicesResponse); err != nil {

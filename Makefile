@@ -1,3 +1,5 @@
+all: run
+
 clean:
 	rm slacker || true
 
@@ -6,5 +8,4 @@ build:
 	chmod +x slacker
 
 run:
-	chmod +x slacker
-	./slacker -dry -config=test.yml
+	go run ./cmd/ -dry -config=test.yml -noreport -log=trace

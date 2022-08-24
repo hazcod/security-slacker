@@ -35,9 +35,11 @@ type Config struct {
 
 	WS1 struct {
 		Endpoint string `yaml:"api_url" env:"WS1_API_URL"`
-		APIKey   string `yaml:"api_key" env:"WS1_API_KEY"`
-		User     string `yaml:"user" env:"WS1_USER"`
-		Password string `yaml:"password" env:"WS1_PASSWORD"`
+		// from https://docs.vmware.com/en/VMware-Workspace-ONE-UEM/services/UEM_ConsoleBasics/GUID-BF20C949-5065-4DCF-889D-1E0151016B5A.html
+		// e.g. 'emea'
+		AuthLocation string `yaml:"auth_location" env:"WS1_AUTH_LOCATION"`
+		ClientID     string `yaml:"client_id" env:"WS1_CLIENT_ID"`
+		ClientSecret string `yaml:"client_secret" env:"WS1_CLIENT_SECRET"`
 
 		SkipFilters []struct {
 			Policy string `yaml:"policy"`
@@ -102,6 +104,14 @@ func (c *Config) Validate() error {
 
 	if c.Templates.UserMessage == "" {
 		return errors.New("missing message")
+	}
+
+	if c.WS1.ClientSecret == "" || c.WS1.ClientID == "" {
+		return errors.New("missing WS1 client_id or client_secret")
+	}
+
+	if c.WS1.AuthLocation == "" {
+		return errors.New("missing WS1 auth_location")
 	}
 
 	return nil
