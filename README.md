@@ -54,10 +54,15 @@ falcon:
 
 # vmware workspace one
 ws1:
+  # the api endpoint of your Workspace ONE instance, eg. "https://asXXXX.awmdm.com/api/"
   api_url: "https://xxx.awmdm.com/api/"
-  api_key: "XXX"
-  user: "XXX"
-  password: "XXX"
+  # your Workspace ONE oauth2 credentials
+  # Groups & Settings > Configurations > Search for "oauth" > Click > Add with a Reader role
+  client_id: "XXX"
+  client_secret: "XXX"
+  # the location of your Workspace ONE tenant, see 'Region-specific Token URLs'
+  # https://docs.vmware.com/en/VMware-Workspace-ONE-UEM/services/UEM_ConsoleBasics/GUID-BF20C949-5065-4DCF-889D-1E0151016B5A.html
+  auth_location: "emea"
   # what policies you want to skip
   # leave user or policy blank to ignore it
   skip:
@@ -135,6 +140,6 @@ templates:
     {{ end }}
     {{ end }}
 ```
-4. Run `css -config=your-config.yml -log=debug -dry` to test.
-5. See the security overview popup to you in Slack!
-6. Now run it for real with `css -config=your-config.yml`.
+7. Run `css -config=your-config.yml -log=debug -dry` to test.
+8. See the security overview popup to you in Slack!
+9. Now run it for real with `css -config=your-config.yml`.

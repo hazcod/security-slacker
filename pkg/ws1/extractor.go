@@ -8,10 +8,9 @@ import (
 	"github.com/hazcod/crowdstrike-spotlight-slacker/config"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2/clientcredentials"
 	"io"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -33,94 +32,6 @@ type UserDeviceFinding struct {
 	ComplianceName string
 }
 
-type LoggedRoundTripper struct {
-	Proxied http.RoundTripper
-	Logger  *logrus.Logger
-}
-
-func (t LoggedRoundTripper) RoundTrip(req *http.Request) (res *http.Response, e error) {
-	resp, err := t.Proxied.RoundTrip(req)
-
-	if t.Logger != nil && t.Logger.IsLevelEnabled(logrus.TraceLevel) {
-		dumped, err := httputil.DumpRequest(req, true)
-		if err != nil {
-			t.Logger.WithError(err).Error("could not dump http request")
-		} else {
-			t.Logger.Trace(string(dumped))
-		}
-
-		if req.Response == nil {
-			t.Logger.Trace("No response")
-		} else {
-			dumped, err = httputil.DumpResponse(req.Response, true)
-			if err != nil {
-				t.Logger.WithError(err).Error("could not dump http response")
-			} else {
-				t.Logger.Trace(string(dumped))
-			}
-		}
-	}
-
-	return resp, err
-}
-
-type authResponse struct {
-	Token   string `json:"access_token"`
-	Expires int    `json:"expires_in"`
-	Type    string `json:"token_type"`
-}
-
-func renewAuth(_ context.Context, ws1AuthLocation, clientID, secret string) (token string, expiry time.Time, err error) {
-	data := url.Values{
-		"client_id":     {clientID},
-		"client_secret": {secret},
-		"grant_type":    {"client_credentials"},
-	}
-
-	resp, err := http.PostForm(fmt.Sprintf("https://%s.uemauth.vmwservices.com/connect/token", ws1AuthLocation), data)
-	if err != nil {
-		return "", time.Time{}, errors.Wrap(err, "could not post to token endpoint")
-	}
-
-	if resp.StatusCode > 399 {
-		return "", time.Time{}, errors.Errorf("token endpoint returned status code: %d", resp.StatusCode)
-	}
-
-	defer resp.Body.Close()
-
-	respB, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", time.Time{}, errors.Wrap(err, "could not read token response")
-	}
-
-	logrus.Debugf("%s", string(respB))
-
-	var response authResponse
-	if err := json.Unmarshal(respB, &response); err != nil {
-		return "", time.Time{}, errors.Wrap(err, "could not decode token response")
-	}
-
-	if !strings.EqualFold(response.Type, "bearer") {
-		return "", time.Time{}, errors.Wrap(err, "not a bearer token")
-	}
-
-	if response.Expires <= 0 {
-		return "", time.Time{}, errors.New("empty expires returned")
-	}
-
-	if response.Token == "" {
-		return "", time.Time{}, errors.New("no token returned")
-	}
-
-	timeExpires := time.Now().Add(time.Second * time.Duration(response.Expires))
-
-	if timeExpires.Before(time.Now()) {
-		return "", time.Time{}, errors.New("token retrieved is already expired")
-	}
-
-	return response.Token, timeExpires, nil
-}
-
 func doAuthRequest(ctx context.Context, ws1AuthLocation, clientID, secret, url, method string, payload interface{}) (respBytes []byte, err error) {
 	var reqPayload []byte
 	if payload != nil {
@@ -129,10 +40,10 @@ func doAuthRequest(ctx context.Context, ws1AuthLocation, clientID, secret, url, 
 		}
 	}
 
-	token, _, err := renewAuth(ctx, ws1AuthLocation, clientID, secret)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not renew auth")
-	}
+	oauth2Config := clientcredentials.Config{ClientID: clientID, ClientSecret: secret,
+		TokenURL: fmt.Sprintf("https://%s.uemauth.vmwservices.com/connect/token", ws1AuthLocation)}
+	httpClient := oauth2Config.Client(ctx)
+	httpClient.Timeout = time.Second * 10
 
 	req, err := http.NewRequest(method, url, bytes.NewReader(reqPayload))
 	req = req.WithContext(ctx)
@@ -141,9 +52,7 @@ func doAuthRequest(ctx context.Context, ws1AuthLocation, clientID, secret, url, 
 	}
 
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
-	httpClient := http.Client{Timeout: time.Second * 10}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "http request failed")
