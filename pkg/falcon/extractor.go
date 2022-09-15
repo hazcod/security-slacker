@@ -144,7 +144,7 @@ func getSeverityScore(severity string) (int, error) {
 	return -1, errors.New("unknown severity: " + severity)
 }
 
-func GetMessages(config *config.Config, ctx context.Context) (results map[string]FalconResult, usersWithSensors []string, err error) {
+func GetMessages(config *config.Config, ctx context.Context) (results map[string]FalconResult, usersWithSensors []string, securityErrors []error, err error) {
 	falconAPIMaxRecords := int64(400)
 
 	results = map[string]FalconResult{}
@@ -156,7 +156,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		Context:      ctx,
 	})
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "could not initialize Falcon client")
+		return nil, nil, nil, errors.Wrap(err, "could not initialize Falcon client")
 	}
 
 	hostResult, err := client.Hosts.QueryDevicesByFilter(
@@ -169,7 +169,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		},
 	)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "could not query all hosts")
+		return nil, nil, nil, errors.Wrap(err, "could not query all hosts")
 	}
 
 	hostDetail, err := client.Hosts.GetDeviceDetails(&hosts.GetDeviceDetailsParams{
@@ -178,13 +178,30 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		HTTPClient: nil,
 	})
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "could not query all host details")
+		return nil, nil, nil, errors.Wrap(err, "could not query all host details")
 	}
+
+	securityErrorsMap := make(map[string]struct{})
+	now := time.Now()
 
 	for _, detail := range hostDetail.Payload.Resources {
 		email, err := findEmailTag(detail.Tags, config.Email.Domains)
 		if err != nil || email == "" {
 			email = "_NOTAG/" + detail.Hostname
+			securityErrorsMap[fmt.Sprintf(
+				"Host %s is missing an email tag",
+				detail.Hostname,
+			)] = struct{}{}
+		}
+
+		hostLastSeen, err := time.Parse(time.RFC3339, detail.LastSeen)
+		if err != nil {
+			logrus.WithError(err).WithField("timestamp", detail.LastSeen).
+				WithField("device", detail.LastSeen).Error("could not parse falcon host last seen")
+		}
+
+		if hostLastSeen.Before(now.Add(-2 * time.Hour * 24 * 31)) {
+			securityErrorsMap[fmt.Sprintf("Falcon sensor for '%s' has not been since for over 2 months: %s", detail.Hostname, detail.LastSeen)] = struct{}{}
 		}
 
 		usersWithSensors = append(usersWithSensors, strings.ToLower(email))
@@ -199,11 +216,11 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		},
 	)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "could not query vulnerabilities")
+		return nil, nil, nil, errors.Wrap(err, "could not query vulnerabilities")
 	}
 
 	if queryResult == nil {
-		return nil, nil, errors.New("QueryVulnerabilities result was nil")
+		return nil, nil, nil, errors.New("QueryVulnerabilities result was nil")
 	}
 
 	var hostTags []string
@@ -211,7 +228,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 
 	minExpertAIScore := 0
 	if newScore, err := getSeverityScore(config.Falcon.MinExprtAISeverity); err != nil {
-		return nil, nil, errors.Wrap(err, "unknown minimum exprtai severity specified")
+		return nil, nil, nil, errors.Wrap(err, "unknown minimum exprtai severity specified")
 	} else {
 		minExpertAIScore = newScore
 	}
@@ -225,7 +242,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		for _, vulnApp := range vuln.Apps {
 
 			if (vulnApp.Remediation == nil || len(vulnApp.Remediation.Ids) == 0) && config.Falcon.SkipNoMitigation {
-				logrus.WithField("rem", fmt.Sprintf("%+v", vulnApp.Remediation)).Debug("rem")
+				logrus.WithField("rem", fmt.Sprintf("%+v", vulnApp.Remediation)).Debug("remediation")
 
 				logrus.WithField("app", vulnApp.ProductNameVersion).
 					Debug("skipping vulnerability without remediation")
@@ -361,11 +378,11 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 	}
 
 	if len(devices) == 0 {
-		return results, nil, nil
+		return results, nil, securityErrors, nil
 	}
 
 	if len(hostTags) == 0 {
-		return nil, nil, errors.New("no tags found on decices")
+		return nil, nil, securityErrors, errors.New("no tags found on decices")
 	}
 
 	logrus.WithField("devices", len(devices)).Info("found vulnerable devices")
@@ -414,5 +431,9 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		results[userEmail] = user
 	}
 
-	return results, usersWithSensors, nil
+	for key, _ := range securityErrorsMap {
+		securityErrors = append(securityErrors, errors.New(key))
+	}
+
+	return results, usersWithSensors, securityErrors, nil
 }

@@ -53,15 +53,24 @@ func main() {
 
 	// ---
 
-	falconMessages, usersWithSensors, err := falcon.GetMessages(config, ctx)
+	falconMessages, usersWithSensors, securityErrors, err := falcon.GetMessages(config, ctx)
 	if err != nil {
 		logrus.WithError(err).Fatal("could not get falcon messages")
 	}
 
-	ws1Messages, usersWithDevices, err := ws1.GetMessages(config, ctx)
+	ws1Messages, usersWithDevices, mdmSecurityErrors, err := ws1.GetMessages(config, ctx)
 	if err != nil {
 		logrus.WithError(err).Fatal("could not get WS1 messages")
 	}
+
+	securityErrors = append(securityErrors, mdmSecurityErrors...)
+	if len(securityErrors) > 0 {
+		for _, secError := range securityErrors {
+			logrus.WithField("module", "falcon").Warn(secError.Error())
+		}
+	}
+
+	usersWithMDMOrEDR := append(usersWithDevices, usersWithSensors...)
 
 	// ---
 
@@ -94,7 +103,7 @@ func main() {
 
 	logrus.WithField("users", len(slackUsers)).Info("found Slack users")
 
-	var errorsToReport []error
+	errorsToReport := securityErrors
 
 	for _, slackUser := range slackUsers {
 		userEmail := strings.ToLower(slackUser.Profile.Email)
@@ -114,7 +123,7 @@ func main() {
 
 		// check if every slack user has a device in MDM
 		hasDevice := false
-		for _, userWDevice := range usersWithDevices {
+		for _, userWDevice := range usersWithMDMOrEDR {
 			if strings.EqualFold(userWDevice, userEmail) {
 				hasDevice = true
 				break
