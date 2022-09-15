@@ -11,9 +11,14 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+)
+
+var (
+	rgxCommaNumber = regexp.MustCompile(`(\.\d+)$`)
 )
 
 type WS1Result struct {
@@ -73,7 +78,7 @@ func doAuthRequest(ctx context.Context, ws1AuthLocation, clientID, secret, url, 
 	return respBytes, nil
 }
 
-func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Result, []string, error) {
+func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Result, []string, []error, error) {
 	deviceResponseB, err := doAuthRequest(
 		ctx,
 		config.WS1.AuthLocation, config.WS1.ClientID, config.WS1.ClientSecret,
@@ -82,20 +87,38 @@ func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Resu
 		nil,
 	)
 
+	var securityErrors []error
+
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "could not fetch WS1 devices")
+		return nil, nil, nil, errors.Wrap(err, "could not fetch WS1 devices")
 	}
 
 	usersWithDevices := make([]string, 0)
 
 	var devicesResponse DevicesResponse
 	if err := json.Unmarshal(deviceResponseB, &devicesResponse); err != nil {
-		return nil, nil, errors.Wrap(err, "could not deserialize getDevices call")
+		return nil, nil, nil, errors.Wrap(err, "could not deserialize getDevices call")
 	}
 
+	securityErrorsMap := make(map[string]struct{})
+
+	now := time.Now()
 	result := make(map[string]WS1Result)
 
 	for _, device := range devicesResponse.Devices {
+
+		// add an error if a device has not been seen for over a month
+		lastSeen := rgxCommaNumber.ReplaceAllString(device.LastSeen, "")
+		hostLastSeen, err := time.Parse("2006-01-02T15:04:05", lastSeen)
+		if err != nil {
+			logrus.WithError(err).WithField("timestamp", lastSeen).
+				WithField("device", device.DeviceFriendlyName).Error("could not parse MDM host last seen")
+		}
+
+		if hostLastSeen.Before(now.Add(-2 * time.Hour * 24 * 31)) {
+			securityErrorsMap[fmt.Sprintf("%s has not been seen for over 2 months in MDM: %s", device.DeviceFriendlyName, lastSeen)] = struct{}{}
+		}
+
 		usersWithDevices = append(usersWithDevices, strings.ToLower(device.UserEmailAddress))
 
 		if strings.EqualFold(device.ComplianceStatus, "Compliant") {
@@ -151,5 +174,9 @@ func GetMessages(config *config.Config, ctx context.Context) (map[string]WS1Resu
 		result[userEmail] = ws1Result
 	}
 
-	return result, usersWithDevices, nil
+	for key, _ := range securityErrorsMap {
+		securityErrors = append(securityErrors, errors.New(key))
+	}
+
+	return result, usersWithDevices, securityErrors, nil
 }

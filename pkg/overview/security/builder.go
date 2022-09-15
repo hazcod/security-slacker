@@ -50,7 +50,6 @@ func BuildSecurityOverviewMessage(logger *logrus.Logger, config config.Config, f
 		Falcon: allFalcon,
 		WS1:    allWS1,
 		Errors: reportedErrors,
-		//MissingSensor: devicesWithoutFalcon,
 	}
 
 	var buffer bytes.Buffer
