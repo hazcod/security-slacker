@@ -159,16 +159,19 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		return nil, nil, nil, errors.Wrap(err, "could not initialize Falcon client")
 	}
 
+	// this filters our Cloud Hosts which are not relevant for user notifications
+	hostFilter := "service_provider:null"
+
 	hostResult, err := client.Hosts.QueryDevicesByFilter(
 		&hosts.QueryDevicesByFilterParams{
-			Filter:  nil,
+			Filter:  &hostFilter,
 			Limit:   &falconAPIMaxRecords,
 			Offset:  nil,
 			Sort:    nil,
 			Context: ctx,
 		},
 	)
-	if err != nil {
+	if err != nil || !hostResult.IsSuccess() {
 		return nil, nil, nil, errors.Wrap(err, "could not query all hosts")
 	}
 
@@ -177,7 +180,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		Context:    ctx,
 		HTTPClient: nil,
 	})
-	if err != nil {
+	if err != nil || !hostDetail.IsSuccess() {
 		return nil, nil, nil, errors.Wrap(err, "could not query all host details")
 	}
 
@@ -185,6 +188,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 	now := time.Now()
 
 	for _, detail := range hostDetail.Payload.Resources {
+
 		email, err := findEmailTag(detail.Tags, config.Email.Domains)
 		if err != nil || email == "" {
 			email = "_NOTAG/" + detail.Hostname

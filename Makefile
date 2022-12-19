@@ -8,4 +8,4 @@ build:
 	chmod +x slacker
 
 run:
-	go run ./cmd/ -dry -config=test.yml -noreport -log=trace
+	go run ./cmd/ -dry -config=test.yml -log=trace
