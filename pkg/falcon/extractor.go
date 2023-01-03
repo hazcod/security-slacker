@@ -145,7 +145,7 @@ func getSeverityScore(severity string) (int, error) {
 }
 
 func GetMessages(config *config.Config, ctx context.Context) (results map[string]FalconResult, usersWithSensors []string, securityErrors []error, err error) {
-	falconAPIMaxRecords := int64(400)
+	falconAPIMaxRecords := int64(5000)
 
 	results = map[string]FalconResult{}
 
@@ -159,16 +159,19 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		return nil, nil, nil, errors.Wrap(err, "could not initialize Falcon client")
 	}
 
+	// this filters our Cloud Hosts which are not relevant for user notifications
+	hostFilter := "service_provider:null"
+
 	hostResult, err := client.Hosts.QueryDevicesByFilter(
 		&hosts.QueryDevicesByFilterParams{
-			Filter:  nil,
+			Filter:  &hostFilter,
 			Limit:   &falconAPIMaxRecords,
 			Offset:  nil,
 			Sort:    nil,
 			Context: ctx,
 		},
 	)
-	if err != nil {
+	if err != nil || !hostResult.IsSuccess() {
 		return nil, nil, nil, errors.Wrap(err, "could not query all hosts")
 	}
 
@@ -177,7 +180,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		Context:    ctx,
 		HTTPClient: nil,
 	})
-	if err != nil {
+	if err != nil || !hostDetail.IsSuccess() {
 		return nil, nil, nil, errors.Wrap(err, "could not query all host details")
 	}
 
@@ -185,6 +188,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 	now := time.Now()
 
 	for _, detail := range hostDetail.Payload.Resources {
+
 		email, err := findEmailTag(detail.Tags, config.Email.Domains)
 		if err != nil || email == "" {
 			email = "_NOTAG/" + detail.Hostname
@@ -207,173 +211,189 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		usersWithSensors = append(usersWithSensors, strings.ToLower(email))
 	}
 
-	queryResult, err := client.SpotlightVulnerabilities.CombinedQueryVulnerabilities(
-		&spotlight_vulnerabilities.CombinedQueryVulnerabilitiesParams{
-			Context: ctx,
-			Filter:  "status:'open'",
-			Limit:   &falconAPIMaxRecords,
-			Facet:   []string{"host_info", "cve", "remediation"},
-		},
-	)
-	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "could not query vulnerabilities")
-	}
-
-	if queryResult == nil {
-		return nil, nil, nil, errors.New("QueryVulnerabilities result was nil")
-	}
-
 	var hostTags []string
 	devices := map[string]UserDevice{}
 
-	minExpertAIScore := 0
-	if newScore, err := getSeverityScore(config.Falcon.MinExprtAISeverity); err != nil {
-		return nil, nil, nil, errors.Wrap(err, "unknown minimum exprtai severity specified")
-	} else {
-		minExpertAIScore = newScore
-	}
-
-	for _, vuln := range queryResult.GetPayload().Resources {
-
-		if vuln.Apps == nil {
-			continue
+	paginationToken := ""
+	for {
+		queryResult, err := client.SpotlightVulnerabilities.CombinedQueryVulnerabilities(
+			&spotlight_vulnerabilities.CombinedQueryVulnerabilitiesParams{
+				Context: ctx,
+				Filter:  "status:'open'",
+				Limit:   &falconAPIMaxRecords,
+				Facet:   []string{"host_info", "cve", "remediation"},
+				After:   &paginationToken,
+			},
+		)
+		if err != nil {
+			return nil, nil, nil, errors.Wrap(err, "could not query vulnerabilities")
 		}
 
-		for _, vulnApp := range vuln.Apps {
+		if queryResult == nil {
+			return nil, nil, nil, errors.New("QueryVulnerabilities result was nil")
+		}
 
-			if (vulnApp.Remediation == nil || len(vulnApp.Remediation.Ids) == 0) && config.Falcon.SkipNoMitigation {
-				logrus.WithField("rem", fmt.Sprintf("%+v", vulnApp.Remediation)).Debug("remediation")
+		minExpertAIScore := 0
+		if newScore, err := getSeverityScore(config.Falcon.MinExprtAISeverity); err != nil {
+			return nil, nil, nil, errors.Wrap(err, "unknown minimum exprtai severity specified")
+		} else {
+			minExpertAIScore = newScore
+		}
 
-				logrus.WithField("app", vulnApp.ProductNameVersion).
-					Debug("skipping vulnerability without remediation")
+		for _, vuln := range queryResult.GetPayload().Resources {
 
+			if vuln.Apps == nil {
 				continue
 			}
 
-			if *vuln.Cve.ID != "" && len(config.Falcon.SkipCVEs) > 0 {
-				vulnIgnore := false
+			for _, vulnApp := range vuln.Apps {
 
-				for _, cve := range config.Falcon.SkipCVEs {
-					if strings.EqualFold(cve, *vuln.Cve.ID) {
-						vulnIgnore = true
-						break
+				if (vulnApp.Remediation == nil || len(vulnApp.Remediation.Ids) == 0) && config.Falcon.SkipNoMitigation {
+					logrus.WithField("rem", fmt.Sprintf("%+v", vulnApp.Remediation)).Debug("remediation")
+
+					logrus.WithField("app", vulnApp.ProductNameVersion).
+						Debug("skipping vulnerability without remediation")
+
+					continue
+				}
+
+				if *vuln.Cve.ID != "" && len(config.Falcon.SkipCVEs) > 0 {
+					vulnIgnore := false
+
+					for _, cve := range config.Falcon.SkipCVEs {
+						if strings.EqualFold(cve, *vuln.Cve.ID) {
+							vulnIgnore = true
+							break
+						}
 					}
-				}
 
-				if vulnIgnore {
-					logrus.WithField("cve", *vuln.Cve.ID).
-						WithField("host", *vuln.HostInfo.Hostname).
-						Warn("skipping CVE")
-					continue
-				}
-			}
-
-			uniqueDeviceID, err := getUniqueDeviceID(*vuln.HostInfo)
-			if err != nil {
-				logrus.WithError(err).Error("could not calculate unique device id")
-
-				continue
-			}
-
-			if config.Falcon.MinCVEBaseScore > 0 {
-				if int(vuln.Cve.BaseScore) < config.Falcon.MinCVEBaseScore {
-					logrus.WithField("cve_score", vuln.Cve.BaseScore).Debug("skipping vulnerability")
-					continue
-				}
-			}
-
-			if config.Falcon.MinExprtAISeverity != "" {
-				vulnExpertAISevScore, err := getSeverityScore(config.Falcon.MinExprtAISeverity)
-				if err != nil {
-					logrus.WithField("exprtai_score", vuln.Cve.ExprtRating).WithError(err).
-						Error("unknown exprtai score")
-				} else {
-					if vulnExpertAISevScore < minExpertAIScore {
-						logrus.WithField("min_exprtai_severity", config.Falcon.MinExprtAISeverity).
-							WithField("exprtai_severity", vuln.Cve.ExprtRating).Debug("skipping vulnerability")
+					if vulnIgnore {
+						logrus.WithField("cve", *vuln.Cve.ID).
+							WithField("host", *vuln.HostInfo.Hostname).
+							Warn("skipping CVE")
 						continue
 					}
 				}
-			}
 
-			if len(config.Falcon.SkipSeverities) > 0 {
-				vulnSev := strings.ToLower(vuln.Cve.Severity)
-				skip := false
+				uniqueDeviceID, err := getUniqueDeviceID(*vuln.HostInfo)
+				if err != nil {
+					logrus.WithError(err).Error("could not calculate unique device id")
 
-				for _, sev := range config.Falcon.SkipSeverities {
-					if strings.EqualFold(sev, vulnSev) {
-						logrus.WithField("host", *vuln.HostInfo.Hostname).WithField("cve_score", vuln.Cve.BaseScore).
-							WithField("severity", vuln.Cve.Severity).WithField("cve", *vuln.Cve.ID).
-							Debug("skipping vulnerability")
-						skip = true
+					continue
+				}
+
+				if config.Falcon.MinCVEBaseScore > 0 {
+					if int(vuln.Cve.BaseScore) < config.Falcon.MinCVEBaseScore {
+						logrus.WithField("cve_score", vuln.Cve.BaseScore).Debug("skipping vulnerability")
+						continue
+					}
+				}
+
+				if config.Falcon.MinExprtAISeverity != "" {
+					vulnExpertAISevScore, err := getSeverityScore(config.Falcon.MinExprtAISeverity)
+					if err != nil {
+						logrus.WithField("exprtai_score", vuln.Cve.ExprtRating).WithError(err).
+							Error("unknown exprtai score")
+					} else {
+						if vulnExpertAISevScore < minExpertAIScore {
+							logrus.WithField("min_exprtai_severity", config.Falcon.MinExprtAISeverity).
+								WithField("exprtai_severity", vuln.Cve.ExprtRating).Debug("skipping vulnerability")
+							continue
+						}
+					}
+				}
+
+				if len(config.Falcon.SkipSeverities) > 0 {
+					vulnSev := strings.ToLower(vuln.Cve.Severity)
+					skip := false
+
+					for _, sev := range config.Falcon.SkipSeverities {
+						if strings.EqualFold(sev, vulnSev) {
+							logrus.WithField("host", *vuln.HostInfo.Hostname).WithField("cve_score", vuln.Cve.BaseScore).
+								WithField("severity", vuln.Cve.Severity).WithField("cve", *vuln.Cve.ID).
+								Debug("skipping vulnerability")
+							skip = true
+							break
+						}
+					}
+
+					if skip {
+						continue
+					}
+				}
+
+				logrus.WithField("host", *vuln.HostInfo.Hostname).WithField("cve_score", vuln.Cve.BaseScore).
+					WithField("severity", vuln.Cve.Severity).WithField("cve", *vuln.Cve.ID).
+					Debug("adding vulnerability")
+
+				createdTime, err := time.Parse(time.RFC3339, *vuln.CreatedTimestamp)
+				if err != nil {
+					logrus.WithField("created_timestamp", *vuln.CreatedTimestamp).WithError(err).
+						Error("could not parse created timestamp as RFC3339")
+				}
+
+				deviceFinding := UserDeviceFinding{
+					ProductName:    *vulnApp.ProductNameVersion,
+					CveID:          *vuln.Cve.ID,
+					CveSeverity:    vuln.Cve.Severity,
+					TimestampFound: *vuln.CreatedTimestamp,
+					DaysOpen:       uint(math.Ceil(time.Since(createdTime).Hours() / 24)),
+				}
+
+				for _, mitigation := range vuln.Remediation.Entities {
+					if strings.HasPrefix(strings.ToLower(*mitigation.Action), "no fix available for ") {
+						continue
+					}
+
+					deviceFinding.Mitigations = appendUnique(deviceFinding.Mitigations, []string{*mitigation.Action})
+				}
+
+				if _, ok := devices[uniqueDeviceID]; !ok {
+					devices[uniqueDeviceID] = UserDevice{
+						Hostname: *vuln.HostInfo.Hostname,
+						MachineName: fmt.Sprintf(
+							"%s %s",
+							*vuln.HostInfo.OsVersion,
+							*vuln.HostInfo.Hostname,
+						),
+						Tags:     vuln.HostInfo.Tags,
+						Findings: []UserDeviceFinding{},
+					}
+				}
+
+				device := devices[uniqueDeviceID]
+
+				findingExists := false
+
+				for _, finding := range device.Findings {
+					if strings.EqualFold(finding.ProductName, deviceFinding.ProductName) {
+						findingExists = true
 						break
 					}
 				}
 
-				if skip {
-					continue
-				}
-			}
-
-			logrus.WithField("host", *vuln.HostInfo.Hostname).WithField("cve_score", vuln.Cve.BaseScore).
-				WithField("severity", vuln.Cve.Severity).WithField("cve", *vuln.Cve.ID).
-				Debug("adding vulnerability")
-
-			createdTime, err := time.Parse(time.RFC3339, *vuln.CreatedTimestamp)
-			if err != nil {
-				logrus.WithField("created_timestamp", *vuln.CreatedTimestamp).WithError(err).
-					Error("could not parse created timestamp as RFC3339")
-			}
-
-			deviceFinding := UserDeviceFinding{
-				ProductName:    *vulnApp.ProductNameVersion,
-				CveID:          *vuln.Cve.ID,
-				CveSeverity:    vuln.Cve.Severity,
-				TimestampFound: *vuln.CreatedTimestamp,
-				DaysOpen:       uint(math.Ceil(time.Since(createdTime).Hours() / 24)),
-			}
-
-			for _, mitigation := range vuln.Remediation.Entities {
-				if strings.HasPrefix(strings.ToLower(*mitigation.Action), "no fix available for ") {
-					continue
+				if !findingExists {
+					device.Findings = append(device.Findings, deviceFinding)
 				}
 
-				deviceFinding.Mitigations = appendUnique(deviceFinding.Mitigations, []string{*mitigation.Action})
+				device.Tags = appendUnique(device.Tags, vuln.HostInfo.Tags)
+
+				devices[uniqueDeviceID] = device
+
+				hostTags = append(hostTags, device.Tags...)
 			}
+		}
 
-			if _, ok := devices[uniqueDeviceID]; !ok {
-				devices[uniqueDeviceID] = UserDevice{
-					Hostname: *vuln.HostInfo.Hostname,
-					MachineName: fmt.Sprintf(
-						"%s %s",
-						*vuln.HostInfo.OsVersion,
-						*vuln.HostInfo.Hostname,
-					),
-					Tags:     vuln.HostInfo.Tags,
-					Findings: []UserDeviceFinding{},
-				}
-			}
+		// stop pagination if we reached the end
+		paginationToken = *queryResult.GetPayload().Meta.Pagination.After
 
-			device := devices[uniqueDeviceID]
+		logrus.WithField("total", *queryResult.GetPayload().Meta.Pagination.Total).
+			WithField("limit", *queryResult.GetPayload().Meta.Pagination.Limit).
+			Debug("paginating")
 
-			findingExists := false
-
-			for _, finding := range device.Findings {
-				if strings.EqualFold(finding.ProductName, deviceFinding.ProductName) {
-					findingExists = true
-					break
-				}
-			}
-
-			if !findingExists {
-				device.Findings = append(device.Findings, deviceFinding)
-			}
-
-			device.Tags = appendUnique(device.Tags, vuln.HostInfo.Tags)
-
-			devices[uniqueDeviceID] = device
-
-			hostTags = append(hostTags, device.Tags...)
+		if paginationToken == "" {
+			logrus.Debug("stopping pagination")
+			break
 		}
 	}
 
@@ -431,7 +451,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		results[userEmail] = user
 	}
 
-	for key, _ := range securityErrorsMap {
+	for key := range securityErrorsMap {
 		securityErrors = append(securityErrors, errors.New(key))
 	}
 
