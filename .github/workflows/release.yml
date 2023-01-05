@@ -35,7 +35,7 @@ jobs:
         echo "Using Go version ${{ steps.versions.outputs.go }}"
     -
       name: Set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: ${{ steps.versions.outputs.go }}
     -
