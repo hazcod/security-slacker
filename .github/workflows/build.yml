@@ -19,7 +19,7 @@ jobs:
       with:
         go-version: ${{ steps.versions.outputs.go }}
     -
-      uses: goreleaser/goreleaser-action@v2
+      uses: goreleaser/goreleaser-action@v4
       with:
         version: latest
         args: build --config=.github/goreleaser.yml --snapshot
