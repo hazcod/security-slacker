@@ -219,7 +219,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		queryResult, err := client.SpotlightVulnerabilities.CombinedQueryVulnerabilities(
 			&spotlight_vulnerabilities.CombinedQueryVulnerabilitiesParams{
 				Context: ctx,
-				Filter:  "status:'open'",
+				Filter:  "status:'open'+suppression_info.is_suppressed:'false'",
 				Limit:   &falconAPIMaxRecords,
 				Facet:   []string{"host_info", "cve", "remediation"},
 				After:   &paginationToken,
