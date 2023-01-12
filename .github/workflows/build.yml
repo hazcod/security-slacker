@@ -15,11 +15,11 @@ jobs:
         echo ::set-output name=go::$(grep '^FROM go' .github/go/Dockerfile | cut -d ' ' -f 2 | cut -d ':' -f 2)
         echo "Using Go version ${{ steps.versions.outputs.go }}"
     -
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: ${{ steps.versions.outputs.go }}
     -
-      uses: goreleaser/goreleaser-action@v2
+      uses: goreleaser/goreleaser-action@v4
       with:
         version: latest
         args: build --config=.github/goreleaser.yml --snapshot
