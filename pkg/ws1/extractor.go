@@ -48,7 +48,7 @@ func doAuthRequest(ctx context.Context, ws1AuthLocation, clientID, secret, url, 
 	oauth2Config := clientcredentials.Config{ClientID: clientID, ClientSecret: secret,
 		TokenURL: fmt.Sprintf("https://%s.uemauth.vmwservices.com/connect/token", ws1AuthLocation)}
 	httpClient := oauth2Config.Client(ctx)
-	httpClient.Timeout = time.Second * 10
+	httpClient.Timeout = time.Second * 30
 
 	req, err := http.NewRequest(method, url, bytes.NewReader(reqPayload))
 	req = req.WithContext(ctx)
