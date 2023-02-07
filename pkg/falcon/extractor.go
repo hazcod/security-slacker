@@ -175,19 +175,50 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		return nil, nil, nil, errors.Wrap(err, "could not query all hosts")
 	}
 
-	hostDetail, err := client.Hosts.GetDeviceDetails(&hosts.GetDeviceDetailsParams{
-		Ids:        hostResult.Payload.Resources,
-		Context:    ctx,
-		HTTPClient: nil,
-	})
-	if err != nil || !hostDetail.IsSuccess() {
-		return nil, nil, nil, errors.Wrap(err, "could not query all host details")
+	allHostDetails := make([]*models.DomainDeviceSwagger, 0)
+
+	step := 100
+	sliceStart := 0
+	sliceEnd := sliceStart + step
+
+	for {
+
+		if sliceEnd == len(hostResult.Payload.Resources)-1 {
+			break
+		}
+
+		if sliceEnd >= len(hostResult.Payload.Resources) {
+			sliceEnd = len(hostResult.Payload.Resources) - 1
+		}
+
+		if sliceEnd == sliceStart {
+			break
+		}
+
+		logrus.WithField("slice_start", sliceStart).WithField("slice_end", sliceEnd).
+			Debug("fetching host device details")
+
+		slicePart := hostResult.Payload.Resources[sliceStart:sliceEnd]
+
+		hostDetail, err := client.Hosts.GetDeviceDetails(&hosts.GetDeviceDetailsParams{
+			Ids:        slicePart,
+			Context:    ctx,
+			HTTPClient: nil,
+		})
+		if err != nil || !hostDetail.IsSuccess() {
+			return nil, nil, nil, errors.Wrap(err, "could not query all host details")
+		}
+
+		allHostDetails = append(allHostDetails, hostDetail.Payload.Resources...)
+
+		sliceStart = sliceEnd
+		sliceEnd = sliceStart + step
 	}
 
 	securityErrorsMap := make(map[string]struct{})
 	now := time.Now()
 
-	for _, detail := range hostDetail.Payload.Resources {
+	for _, detail := range allHostDetails {
 
 		email, err := findEmailTag(detail.Tags, config.Email.Domains)
 		if err != nil || email == "" {
