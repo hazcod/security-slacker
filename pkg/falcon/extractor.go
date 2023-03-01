@@ -38,6 +38,7 @@ type UserDevice struct {
 }
 
 type UserDeviceFinding struct {
+	FixedVersion   string
 	ProductName    string
 	CveID          string
 	CveSeverity    string
@@ -368,7 +369,8 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 					CveID:          *vuln.Cve.ID,
 					CveSeverity:    vuln.Cve.Severity,
 					TimestampFound: *vuln.CreatedTimestamp,
-					DaysOpen:       uint(math.Ceil(time.Since(createdTime).Hours() / 24)),
+					// FixedVersion:   "", -> set later
+					DaysOpen: uint(math.Ceil(time.Since(createdTime).Hours() / 24)),
 				}
 
 				for _, mitigation := range vuln.Remediation.Entities {
@@ -376,6 +378,8 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 						continue
 					}
 
+					logrus.Fatalf("%+v", mitigation)
+					// TODO: remove
 					deviceFinding.Mitigations = appendUnique(deviceFinding.Mitigations, []string{*mitigation.Action})
 				}
 
