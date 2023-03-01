@@ -5,7 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
+	"os"
 )
 
 const (
@@ -62,7 +62,7 @@ func LoadConfig(logger *logrus.Logger, path string) (*Config, error) {
 	var config Config
 
 	if path != "" {
-		configBytes, err := ioutil.ReadFile(path)
+		configBytes, err := os.ReadFile(path)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not load configuration file")
 		}
