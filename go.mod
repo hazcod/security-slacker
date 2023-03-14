@@ -3,12 +3,12 @@ module github.com/hazcod/crowdstrike-spotlight-slacker
 go 1.16
 
 require (
-	github.com/crowdstrike/gofalcon v0.2.32
+	github.com/crowdstrike/gofalcon v0.2.33
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/loads v0.21.2 // indirect
 	github.com/go-openapi/runtime v0.25.0 // indirect
 	github.com/go-openapi/spec v0.20.8 // indirect
-	github.com/go-openapi/validate v0.22.1 // indirect
+	github.com/google/uuid v1.1.2 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
