@@ -369,8 +369,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 					CveID:          *vuln.Cve.ID,
 					CveSeverity:    vuln.Cve.Severity,
 					TimestampFound: *vuln.CreatedTimestamp,
-					// FixedVersion:   "", -> set later
-					DaysOpen: uint(math.Ceil(time.Since(createdTime).Hours() / 24)),
+					DaysOpen:       uint(math.Ceil(time.Since(createdTime).Hours() / 24)),
 				}
 
 				for _, mitigation := range vuln.Remediation.Entities {
@@ -378,8 +377,6 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 						continue
 					}
 
-					logrus.Fatalf("%+v", mitigation)
-					// TODO: remove
 					deviceFinding.Mitigations = appendUnique(deviceFinding.Mitigations, []string{*mitigation.Action})
 				}
 
@@ -387,9 +384,9 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 					devices[uniqueDeviceID] = UserDevice{
 						Hostname: *vuln.HostInfo.Hostname,
 						MachineName: fmt.Sprintf(
-							"%s %s",
-							*vuln.HostInfo.OsVersion,
+							"%s (%s)",
 							*vuln.HostInfo.Hostname,
+							*vuln.HostInfo.OsVersion,
 						),
 						Tags:     vuln.HostInfo.Tags,
 						Findings: []UserDeviceFinding{},
