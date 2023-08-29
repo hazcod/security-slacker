@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/crowdstrike/gofalcon/falcon/client/hosts"
+	"github.com/crowdstrike/gofalcon/falcon/client/vulnerabilities"
 	"github.com/pkg/errors"
 	"math"
 	"strings"
 	"time"
 
 	"github.com/crowdstrike/gofalcon/falcon"
-	"github.com/crowdstrike/gofalcon/falcon/client/spotlight_vulnerabilities"
 	"github.com/crowdstrike/gofalcon/falcon/models"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/config"
 	"github.com/sirupsen/logrus"
@@ -176,7 +176,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		return nil, nil, nil, errors.Wrap(err, "could not query all hosts")
 	}
 
-	allHostDetails := make([]*models.DomainDeviceSwagger, 0)
+	allHostDetails := make([]*models.DeviceapiDeviceSwagger, 0)
 
 	step := 100
 	sliceStart := 0
@@ -201,7 +201,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 
 		slicePart := hostResult.Payload.Resources[sliceStart:sliceEnd]
 
-		hostDetail, err := client.Hosts.GetDeviceDetails(&hosts.GetDeviceDetailsParams{
+		hostDetail, err := client.Hosts.GetDeviceDetailsV2(&hosts.GetDeviceDetailsV2Params{
 			Ids:        slicePart,
 			Context:    ctx,
 			HTTPClient: nil,
@@ -248,8 +248,8 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 
 	paginationToken := ""
 	for {
-		queryResult, err := client.SpotlightVulnerabilities.CombinedQueryVulnerabilities(
-			&spotlight_vulnerabilities.CombinedQueryVulnerabilitiesParams{
+		queryResult, err := client.Vulnerabilities.CombinedQueryVulnerabilities(
+			&vulnerabilities.CombinedQueryVulnerabilitiesParams{
 				Context: ctx,
 				Filter:  "status:'open'+suppression_info.is_suppressed:'false'",
 				Limit:   &falconAPIMaxRecords,
