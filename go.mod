@@ -3,7 +3,7 @@ module github.com/hazcod/crowdstrike-spotlight-slacker
 go 1.16
 
 require (
-	github.com/crowdstrike/gofalcon v0.4.0
+	github.com/crowdstrike/gofalcon v0.4.1
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
