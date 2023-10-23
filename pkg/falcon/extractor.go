@@ -179,10 +179,12 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 	allHostDetails := make([]*models.DomainDeviceSwagger, 0)
 
 	step := 100
-	sliceStart := 0
-	sliceEnd := sliceStart + step
 
-	for {
+	for sliceStart := 0; sliceStart < len(hostResult.Payload.Resources); i += step {
+		sliceEnd := sliceStart + step
+		if sliceEnd > len(hostResult.Payload.Resources) {
+			sliceEnd = len(hostResult.Payload.Resources)
+		}
 
 		if sliceEnd == len(hostResult.Payload.Resources)-1 {
 			break
