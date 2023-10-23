@@ -180,7 +180,7 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 
 	step := 100
 
-	for sliceStart := 0; sliceStart < len(hostResult.Payload.Resources); i += step {
+	for sliceStart := 0; sliceStart < len(hostResult.Payload.Resources); sliceStart += step {
 		sliceEnd := sliceStart + step
 		if sliceEnd > len(hostResult.Payload.Resources) {
 			sliceEnd = len(hostResult.Payload.Resources)
