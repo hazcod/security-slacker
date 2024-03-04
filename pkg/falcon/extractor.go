@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/crowdstrike/gofalcon/falcon/client/hosts"
-	"github.com/crowdstrike/gofalcon/falcon/client/vulnerabilities"
+	"github.com/crowdstrike/gofalcon/falcon/client/spotlight_vulnerabilities"
 	"github.com/pkg/errors"
 	"math"
 	"strings"
@@ -250,8 +250,8 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 
 	paginationToken := ""
 	for {
-		queryResult, err := client.Vulnerabilities.CombinedQueryVulnerabilities(
-			&vulnerabilities.CombinedQueryVulnerabilitiesParams{
+		queryResult, err := client.SpotlightVulnerabilities.CombinedQueryVulnerabilities(
+			&spotlight_vulnerabilities.CombinedQueryVulnerabilitiesParams{
 				Context: ctx,
 				Filter:  "status:'open'+suppression_info.is_suppressed:'false'",
 				Limit:   &falconAPIMaxRecords,
