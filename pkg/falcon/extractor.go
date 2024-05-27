@@ -223,6 +223,11 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 
 	for _, detail := range allHostDetails {
 
+		// skip all cloud sensors since those are auto-managed
+		if detail.ServiceProvider != "" {
+			continue
+		}
+
 		email, err := findEmailTag(detail.Tags, config.Email.Domains)
 		if err != nil || email == "" {
 			email = "_NOTAG/" + detail.Hostname
