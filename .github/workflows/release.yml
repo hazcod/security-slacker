@@ -47,7 +47,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     -
       name: Release
-      uses: goreleaser/goreleaser-action@v5
+      uses: goreleaser/goreleaser-action@v6
       with:
         version: latest
         args: release --config=.github/goreleaser.yml --clean
