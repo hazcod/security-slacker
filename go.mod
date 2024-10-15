@@ -7,7 +7,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/slack-go/slack v0.13.0
+	github.com/slack-go/slack v0.15.0
 	golang.org/x/oauth2 v0.20.0
 	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/yaml.v3 v3.0.1
