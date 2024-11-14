@@ -2,8 +2,8 @@ github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 h1:DklsrG3d
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
-github.com/crowdstrike/gofalcon v0.8.0 h1:s2Fa6IDKACjxyaUU8UpLXcCnlsN5I6NQBk/ngjeudg8=
-github.com/crowdstrike/gofalcon v0.8.0/go.mod h1:DQ+2zNX9KuuVprwedvsCsPZlnxErohwcQcBxNK+kVJ8=
+github.com/crowdstrike/gofalcon v0.9.0 h1:xSTom90Wt3ZqzEJXDyR7bkNtie1LbYadCcoz2JFWL4M=
+github.com/crowdstrike/gofalcon v0.9.0/go.mod h1:QslL48H5VkKUlktz2+b4iLfY2YgC+7aBa25jPxrER4Y=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
