@@ -24,3 +24,7 @@ csn
 
 # jetbrains ide
 .idea/
+
+.cache/
+.generated-go-semantic-release-changelog.md
+.semrel/
