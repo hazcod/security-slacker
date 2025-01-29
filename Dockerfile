@@ -1,4 +1,3 @@
-
 FROM alpine:latest AS builder
 
 # add ca certificates and timezone data files
