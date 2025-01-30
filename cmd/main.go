@@ -5,6 +5,7 @@ import (
 	"flag"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/overview/security"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/overview/user"
+	slackPkg "github.com/hazcod/crowdstrike-spotlight-slacker/pkg/slack"
 	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/ws1"
 	"gopkg.in/errgo.v2/fmt/errors"
 	"os"
@@ -14,13 +15,6 @@ import (
 	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/falcon"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
-)
-
-var (
-	slackStatusHolidays = []string{
-		"vacationing",
-		"absent",
-	}
 )
 
 func main() {
@@ -153,27 +147,16 @@ func main() {
 
 		logrus.WithField("email", slackUser.Profile.Email).Debug("looking at Slack user")
 
-		if config.Slack.SkipOnHoliday {
-			isOnHoliday := false
-			slackStatus := strings.ToLower(slackUser.Profile.StatusText)
-
-			for _, statusPrefix := range slackStatusHolidays {
-				if strings.HasPrefix(slackStatus, statusPrefix) {
-					isOnHoliday = true
-					break
-				}
-			}
-
-			if isOnHoliday {
-				logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
-				continue
-			}
+		if config.Slack.SkipOnHoliday && slackPkg.IsOnHoliday(slackUser) {
+			logrus.WithField("slack_name", slackUser.Name).Warn("skipping user since he/she is on holiday")
+			continue
 		}
 
-		logrus.WithField("falcon", len(userFalconMsg.Devices)).WithField("ws1", len(userWS1Msg.Devices)).WithField("email", userEmail).
-			Debug("found messages")
+		logrus.WithField("falcon", len(userFalconMsg.Devices)).WithField("ws1", len(userWS1Msg.Devices)).
+			WithField("email", userEmail).Debug("found messages")
 
-		slackMessage, err := user.BuildUserOverviewMessage(logrus.StandardLogger(), config, slackUser, falconMessages[userEmail], ws1Messages[userEmail])
+		slackMessage, err := user.BuildUserOverviewMessage(
+			logrus.StandardLogger(), config, slackUser, falconMessages[userEmail], ws1Messages[userEmail])
 		if err != nil {
 			logrus.WithError(err).WithField("user", slackUser.Profile.Email).Error("could not generate user message")
 			continue
@@ -221,7 +204,7 @@ func main() {
 	for _, userWithSensor := range usersWithSensors {
 		if strings.HasPrefix(userWithSensor, "_NOTAG/") {
 			errorsToReport = append(errorsToReport, errors.Newf(
-				"%s does not have a user email tag assigned", strings.Split("/", userWithSensor)[1],
+				"%s does not have a user email tag assigned", strings.Split(userWithSensor, "/")[1],
 			))
 		}
 	}
@@ -249,7 +232,8 @@ func main() {
 
 	// ---
 
-	overviewText, err := security.BuildSecurityOverviewMessage(logrus.StandardLogger(), *config, falconMessages, ws1Messages, errorsToReport)
+	overviewText, err := security.BuildSecurityOverviewMessage(logrus.StandardLogger(),
+		*config, falconMessages, ws1Messages, errorsToReport)
 	if err != nil {
 		logrus.WithError(err).Fatal("could not generate security overview")
 	}
