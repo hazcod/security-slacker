@@ -1,8 +1,6 @@
-module github.com/hazcod/crowdstrike-spotlight-slacker
+module github.com/hazcod/security-slacker
 
-go 1.22.0
-
-toolchain go1.23.5
+go 1.23.5
 
 require (
 	github.com/crowdstrike/gofalcon v0.11.1

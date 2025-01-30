@@ -2,9 +2,9 @@ package user
 
 import (
 	"bytes"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/config"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/falcon"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/ws1"
+	"github.com/hazcod/security-slacker/config"
+	"github.com/hazcod/security-slacker/pkg/falcon"
+	"github.com/hazcod/security-slacker/pkg/ws1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
@@ -26,13 +26,13 @@ func BuildUserOverviewMessage(logger *logrus.Logger, config *config.Config, slac
 	}
 
 	variables := struct {
-		Slack slack.User
+		Slack  slack.User
 		Falcon falcon.FalconResult
-		WS1 ws1.WS1Result
+		WS1    ws1.WS1Result
 	}{
-		Slack: slackUser,
+		Slack:  slackUser,
 		Falcon: falconResult,
-		WS1: ws1Result,
+		WS1:    ws1Result,
 	}
 
 	var buffer bytes.Buffer

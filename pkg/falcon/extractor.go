@@ -15,7 +15,7 @@ import (
 
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/crowdstrike/gofalcon/falcon/models"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/config"
+	"github.com/hazcod/security-slacker/config"
 	"github.com/sirupsen/logrus"
 )
 
@@ -215,7 +215,6 @@ func GetMessages(config *config.Config, ctx context.Context) (results map[string
 		allHostDetails = append(allHostDetails, hostDetail.Payload.Resources...)
 
 		sliceStart = sliceEnd
-		sliceEnd = sliceStart + step
 	}
 
 	securityErrorsMap := make(map[string]struct{})

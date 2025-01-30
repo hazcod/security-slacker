@@ -2,9 +2,9 @@ package security
 
 import (
 	"bytes"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/config"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/falcon"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/ws1"
+	"github.com/hazcod/security-slacker/config"
+	"github.com/hazcod/security-slacker/pkg/falcon"
+	"github.com/hazcod/security-slacker/pkg/ws1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"html/template"
