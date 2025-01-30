@@ -1,50 +1,43 @@
+version: 2
+
 before:
   hooks:
-  - go mod download
-
-dockers:
--
-  image_templates:
-  - "ghcr.io/hazcod/crowdstrike-spotlight-slacker/css:{{ .Tag }}"
-  - "ghcr.io/hazcod/crowdstrike-spotlight-slacker/css:v{{ .Major }}"
-  - "ghcr.io/hazcod/crowdstrike-spotlight-slacker/css:latest"
-
-builds:
--
-  binary: css
-  env:
-  - CGO_ENABLED=0
-  ldflags:
-  - -w -s -extldflags "-static"
-  dir: ./cmd
-  goos:
-  - darwin
-  - linux
-  - windows
-  - freebsd
-  goarch:
-  - amd64
-
-archives:
--
-  format: zip
-  name_template: >-
-    {{ .ProjectName }}_
-    {{- title .Os }}_
-    {{- if eq .Arch "amd64" }}x86_64
-    {{- else if eq .Arch "386" }}i386
-    {{- else }}{{ .Arch }}{{ end }}
+    - go mod download
 
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "securityslacker_{{ .Version }}"
 
 changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
-    - '^chore'
+      - '^docs:'
+      - '^test:'
+      - '^chore'
+
+release:
+  disable: false
+
+dockers:
+  -
+    image_templates:
+      - "ghcr.io/hazcod/security-slacker/securityslacker:latest"
+      - "ghcr.io/hazcod/security-slacker/securityslacker:{{ .Tag }}"
+      - "ghcr.io/hazcod/security-slacker/securityslacker:{{ .Major }}"
+
+sboms:
+  -
+    artifacts: archive
+
+builds:
+  -
+    id: cli
+    dir: ./cmd/
+    env: [CGO_ENABLED=0]
+    ldflags: [-w -s -extldflags "-static"]
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    binary: securityslacker
