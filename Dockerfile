@@ -25,7 +25,7 @@ COPY --from=builder /etc/passwd /etc/group /etc/shadow /etc/
 # add-in our ca certificates
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-COPY --chown=app css /app
+COPY --chown=app securityslacker /app
 
 # from now on, run as the unprivileged user
 USER 1000

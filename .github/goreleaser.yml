@@ -24,9 +24,9 @@ release:
 dockers:
   -
     image_templates:
-      - "ghcr.io/hazcod/security-slacker/css:latest"
-      - "ghcr.io/hazcod/security-slacker/css:{{ .Tag }}"
-      - "ghcr.io/hazcod/security-slacker/css:{{ .Major }}"
+      - "ghcr.io/hazcod/security-slacker/securityslacker:latest"
+      - "ghcr.io/hazcod/security-slacker/securityslacker:{{ .Tag }}"
+      - "ghcr.io/hazcod/security-slacker/securityslacker:{{ .Major }}"
 
 sboms:
   -
@@ -40,4 +40,4 @@ builds:
     ldflags: [-w -s -extldflags "-static"]
     goos: [darwin, linux, windows]
     goarch: [amd64, arm64]
-    binary: css
+    binary: securityslacker
