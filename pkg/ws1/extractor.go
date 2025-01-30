@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/config"
+	"github.com/hazcod/security-slacker/config"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2/clientcredentials"

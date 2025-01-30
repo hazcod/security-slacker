@@ -19,7 +19,7 @@ Slack overview message for the security user:
 
 1. Tag your Falcon hosts with `email/user/company/com` if their email is `user@company.com`.
 2. Assign compliance policies to your devices in Workspace ONE. 
-3. Fetch a binary release or Docker image from [Releases](https://github.com/hazcod/crowdstrike-spotlight-slacker/releases).
+3. Fetch a binary release or Docker image from [Releases](https://github.com/hazcod/security-slacker/releases).
 4. Create a Falcon API token to use in `API Clients and Keys` with `Read` permission to `Hosts` and `Spotlight`.
 5. Create Workspace ONE oauth2 API credentials with a read-only role.
 6. Create a configuration file:

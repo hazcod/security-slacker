@@ -3,16 +3,16 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/overview/security"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/overview/user"
-	slackPkg "github.com/hazcod/crowdstrike-spotlight-slacker/pkg/slack"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/ws1"
+	"github.com/hazcod/security-slacker/pkg/overview/security"
+	"github.com/hazcod/security-slacker/pkg/overview/user"
+	slackPkg "github.com/hazcod/security-slacker/pkg/slack"
+	"github.com/hazcod/security-slacker/pkg/ws1"
 	"gopkg.in/errgo.v2/fmt/errors"
 	"os"
 	"strings"
 
-	config2 "github.com/hazcod/crowdstrike-spotlight-slacker/config"
-	"github.com/hazcod/crowdstrike-spotlight-slacker/pkg/falcon"
+	config2 "github.com/hazcod/security-slacker/config"
+	"github.com/hazcod/security-slacker/pkg/falcon"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 )
