@@ -1,11 +1,10 @@
 all: run
 
 clean:
-	rm slacker || true
+	rm dist/ || true
 
 build:
-	go build -o slacker ./cmd/
-	chmod +x slacker
+	goreleaser --config=.github/goreleaser.yml build --snapshot --clean
 
 run:
 	go run ./cmd/ -dry -config=test.yml -log=trace

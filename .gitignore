@@ -28,3 +28,6 @@ csn
 .cache/
 .generated-go-semantic-release-changelog.md
 .semrel/
+
+.DS_Store
+dist/
