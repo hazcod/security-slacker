@@ -1,15 +1,13 @@
 module github.com/hazcod/security-slacker
 
-go 1.23.5
-
-toolchain go1.24.1
+go 1.25
 
 require (
 	github.com/crowdstrike/gofalcon v0.19.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/slack-go/slack v0.17.3
+	github.com/slack-go/slack v0.21.0
 	golang.org/x/oauth2 v0.30.0
 	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/yaml.v3 v3.0.1
